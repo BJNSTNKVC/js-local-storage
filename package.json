@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Simple wrapper for JavaScript Local Storage API.",
   "main": "lib/main.js",
+  "source": "src/main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/BJNSTNKVC/js-local-storage/issues"
   },
-  "homepage": "https://github.com/BJNSTNKVC/js-local-storage#readme"
+  "homepage": "https://github.com/BJNSTNKVC/js-local-storage#readme",
+  "devDependencies": {
+    "@types/node": "^20.11.6",
+    "typescript" : "^5.3.3"
+  }
 }
