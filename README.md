@@ -1,2 +1,3 @@
-# js-local-storage
+# LocalStorage
+
 Simple wrapper for JavaScript Local Storage API.
