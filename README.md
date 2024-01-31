@@ -12,6 +12,12 @@ You can install the package via npm:
 npm install @bjnstnkvc/local-storage
 ````
 
+and then import it into your project
+
+```javascript
+import { LocalStorage } from '@bjnstnkvc/local-storage';
+```
+
 ### CDN
 
 You can install the package via jsDelivr CDN:
