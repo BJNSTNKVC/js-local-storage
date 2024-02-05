@@ -1,4 +1,11 @@
-const LocalStorage  = class {
+const LocalStorage = class {
+	/**
+	 * Default item validity period in seconds.
+	 *
+	 * @type { number | null }
+	 */
+	static ttl: number | null = null;
+
 	/**
 	 * Set the key to the Storage object.
 	 *
@@ -7,6 +14,8 @@ const LocalStorage  = class {
 	 * @param { number|null } ttl Item validity period in seconds.
 	 */
 	static set(key: string, value: any, ttl: number | null = null): void {
+		ttl = ttl ?? LocalStorage.ttl;
+
 		const item = {
 			data  : value,
 			expiry: ttl ? Date.now() + ttl * 1000 : null
@@ -35,7 +44,7 @@ const LocalStorage  = class {
 				case 'string':
 					return fallback;
 				case 'object':
-					return fallback.persist ? LocalStorage.set(key, fallback.value, fallback.ttl ?? null) : fallback.value;
+					return fallback.persist ? LocalStorage.set(key, fallback.value, fallback.ttl ?? LocalStorage.ttl) : fallback.value;
 				default:
 					return null;
 			}
@@ -58,7 +67,7 @@ const LocalStorage  = class {
 	 * @return { object }
 	 */
 	static all(): object {
-		const storage : object | any = { ...localStorage };
+		const storage: object | any = { ...localStorage };
 
 		for (const item in storage) {
 			storage[item] = LocalStorage.get(item);
@@ -156,7 +165,7 @@ const LocalStorage  = class {
 			return;
 		}
 
-		LocalStorage.set(key, item, ttl);
+		LocalStorage.set(key, item, ttl ?? LocalStorage.ttl);
 	}
 
 	/**
@@ -167,7 +176,7 @@ const LocalStorage  = class {
 	static dump(key: string): void {
 		console.log(LocalStorage.get(key));
 	}
-}
+};
 
 if (typeof exports != 'undefined') {
 	module.exports.LocalStorage = LocalStorage;
