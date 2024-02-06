@@ -4,7 +4,16 @@ const LocalStorage = class {
 	 *
 	 * @type { number | null }
 	 */
-	static ttl: number | null = null;
+	private static _ttl: number | null = null;
+
+	/**
+	 * Set the default item validity period in seconds.
+	 *
+	 * @param {number | null} value
+	 */
+	static ttl(value: number | null) {
+		LocalStorage._ttl = value;
+	}
 
 	/**
 	 * Set the key to the Storage object.
@@ -14,7 +23,7 @@ const LocalStorage = class {
 	 * @param { number|null } ttl Item validity period in seconds.
 	 */
 	static set(key: string, value: any, ttl: number | null = null): void {
-		ttl = ttl ?? LocalStorage.ttl;
+		ttl = ttl ?? LocalStorage._ttl;
 
 		const item = {
 			data  : value,
@@ -44,7 +53,7 @@ const LocalStorage = class {
 				case 'string':
 					return fallback;
 				case 'object':
-					return fallback.persist ? LocalStorage.set(key, fallback.value, fallback.ttl ?? LocalStorage.ttl) : fallback.value;
+					return fallback.persist ? LocalStorage.set(key, fallback.value, fallback.ttl ?? LocalStorage._ttl) : fallback.value;
 				default:
 					return null;
 			}
@@ -165,7 +174,7 @@ const LocalStorage = class {
 			return;
 		}
 
-		LocalStorage.set(key, item, ttl ?? LocalStorage.ttl);
+		LocalStorage.set(key, item, ttl ?? LocalStorage._ttl);
 	}
 
 	/**
