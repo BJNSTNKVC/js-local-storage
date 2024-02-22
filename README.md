@@ -29,16 +29,6 @@ You can install the package via jsDelivr CDN:
 
 ## Usage
 
-### ttl
-Define a global Time-To-Live (TTL) for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
-
-##### Example
-
-```typescript
-LocalStorage.ttl(7200); // Set a default TTL of 2 hours (7200 seconds)
-```
-If a default TTL has been set using `LocalStorage.ttl`, it will be applied to all items set without a specified TTL.
-
 ### set
 
 Set the value for a given key in the Local Storage.
@@ -199,3 +189,13 @@ Print the value associated with a key to the console.
 ```javascript
 LocalStorage.dump('key');
 ```
+
+### ttl
+Define a global Time-To-Live (TTL) for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
+
+##### Example
+
+```typescript
+LocalStorage.ttl(7200); // Set a default TTL of 2 hours (7200 seconds)
+```
+If a default TTL has been set using `LocalStorage.ttl`, it will be applied to all items set without a specified TTL.
