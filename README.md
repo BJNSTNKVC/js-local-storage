@@ -68,7 +68,7 @@ Retrieve the value associated with the given key, or execute the given callback 
 #### Parameters
 
 - **key** - String containing the name of the key.
-- **fallback** - String containing the fallback value.
+- **fallback** - Function you want to execute.
 - **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
 
 #### Example
