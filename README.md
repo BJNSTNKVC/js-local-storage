@@ -74,7 +74,7 @@ Retrieve the value associated with the given key, or execute the given callback 
 #### Example
 
 ```javascript
-LocalStorage.remember('key', 'default', 60);
+LocalStorage.remember('key', () => 'default', 60);
 ````
 
 ### all

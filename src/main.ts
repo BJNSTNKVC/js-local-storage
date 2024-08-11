@@ -72,7 +72,7 @@ class LocalStorage {
      *
      * @return { any }
      */
-    static remember(key: string, callback: Function, ttl: number | null): any {
+    static remember(key: string, callback: Function, ttl: number | null = null): any {
         const storageItem: string | null = LocalStorage.get(key);
 
         if (!storageItem) {
