@@ -33,12 +33,12 @@ You can install the package via jsDelivr CDN:
 
 Set the value for a given key in the Local Storage.
 
-##### Parameters
+#### Parameters
 - **key** - String containing the name of the key.
 - **value** - The value to be stored.
 - **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
 
-##### Example
+#### Example
 
 ```javascript
 LocalStorage.set('key', 'value', 60); 
@@ -51,21 +51,31 @@ Retrieve the value associated with the given key from the Local Storage.
 #### Parameters
 
 - **key** - String containing the name of the key.
-- **fallback** *(optional)* - Fallback value if the key does not exist. Can be provided as a string or an object with the following properties:
-  - **value** - The fallback value to be used if the key does not exist.
-  - **ttl** - Time to live in seconds for the fallback key if it needs to be set. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
-  - **persist** *(optional)* - Boolean indicating whether the fallback value should be persisted in the Local Storage. Defaults to `false`.
+- **fallback** *(optional)* - String containing the fallback value. Defaults to `null`.
 
 #### Example
 
 ```javascript
 LocalStorage.get('key', 'default');
 ````
-```javascript
-LocalStorage.get('key', { value: 'default', ttl: 60, persist: true });
-```
 
 >**Note:** When you attempt to retrieve a value using the `get` method, it checks if the item has expired based on its TTL (Time-To-Live). If the item has indeed expired, it is automatically removed from the LocalStorage, ensuring that your application only works with valid, up-to-date data. 
+
+### remember
+
+Retrieve the value associated with the given key, or execute the given callback and store the result in the Local Storage.
+
+#### Parameters
+
+- **key** - String containing the name of the key.
+- **fallback** - String containing the fallback value.
+- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
+
+#### Example
+
+```javascript
+LocalStorage.remember('key', 'default', 60);
+````
 
 ### all
 
@@ -193,7 +203,7 @@ LocalStorage.dump('key');
 ### ttl
 Define a global Time-To-Live (TTL) for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
 
-##### Example
+#### Example
 
 ```typescript
 LocalStorage.ttl(7200); // Set a default TTL of 2 hours (7200 seconds)
