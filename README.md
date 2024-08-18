@@ -59,6 +59,13 @@ Retrieve the value associated with the given key from the Local Storage.
 LocalStorage.get('key', 'default');
 ````
 
+You can also pass a closure as the default value. If the specified item is not found in the Local Storage, the closure will be executed and its result returned. 
+This allows you to lazily load default values from other sources:
+
+```javascript
+LocalStorage.get('key', () => { return 'default'});
+````
+
 >**Note:** When you attempt to retrieve a value using the `get` method, it checks if the item has expired based on its TTL (Time-To-Live). If the item has indeed expired, it is automatically removed from the LocalStorage, ensuring that your application only works with valid, up-to-date data. 
 
 ### remember
@@ -208,4 +215,5 @@ Define a global Time-To-Live (TTL) for all items saved using the [LocalStorage.s
 ```typescript
 LocalStorage.ttl(7200); // Set a default TTL of 2 hours (7200 seconds)
 ```
+
 If a default TTL has been set using `LocalStorage.ttl`, it will be applied to all items set without a specified TTL.
