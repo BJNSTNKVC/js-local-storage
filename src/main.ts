@@ -26,7 +26,7 @@ class LocalStorage {
         ttl = ttl ?? LocalStorage._ttl;
 
         const item: LocalStorageItem = {
-            data  : value,
+            data  : value instanceof Function ? value() : value,
             expiry: ttl ? Date.now() + ttl * 1000 : null
         };
 
@@ -37,19 +37,15 @@ class LocalStorage {
      * Get the key from the Storage object.
      *
      * @param { string } key String containing the name of the key you want to create.
-     * @param { string | null } fallback String containing the fallback value.
+     * @param { string | Function | null } fallback String containing the fallback value.
      *
      * @return { * }
      */
-    static get(key: string, fallback: string | null = null): any {
+    static get(key: string, fallback: string | Function | null = null): any {
         const storageItem: string | null = localStorage.getItem(key);
 
         if (!storageItem) {
-            if (fallback === null) {
-                return null;
-            }
-
-            return fallback;
+            return fallback instanceof Function ? fallback() : fallback ?? null;
         }
 
         const item: LocalStorageItem = JSON.parse(storageItem);
@@ -76,7 +72,7 @@ class LocalStorage {
         const storageItem: string | null = LocalStorage.get(key);
 
         if (!storageItem) {
-            LocalStorage.set(key, callback(), ttl ?? LocalStorage._ttl);
+            LocalStorage.set(key, callback, ttl ?? LocalStorage._ttl);
         }
 
         return storageItem ?? LocalStorage.get(key);
@@ -91,7 +87,11 @@ class LocalStorage {
         const storage: object | any = { ...localStorage };
 
         for (const item in storage) {
-            storage[item] = LocalStorage.get(item);
+            try {
+                storage[item] = LocalStorage.get(item);
+            } catch (exception) {
+                // In case the key was not added through LocalStorage API, return it as is.
+            }
         }
 
         return storage;
@@ -143,7 +143,7 @@ class LocalStorage {
      * @return { boolean }
      */
     static isEmpty(): boolean {
-        return localStorage.length === 0;
+        return Object.keys(LocalStorage.all()).length === 0;
     }
 
     /**
@@ -201,4 +201,11 @@ class LocalStorage {
 
 if (typeof exports != 'undefined') {
     module.exports.LocalStorage = LocalStorage;
+}
+
+// Hack to test this code, global is not available in the browser.
+if (typeof global !== 'undefined') {
+    const _global: any = global;
+
+    _global.LocalStorage = LocalStorage;
 }
