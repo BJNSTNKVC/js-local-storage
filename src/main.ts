@@ -44,19 +44,23 @@ class LocalStorage {
     static get(key: string, fallback: string | Function | null = null): any {
         const storageItem: string | null = localStorage.getItem(key);
 
-        if (!storageItem) {
+        if (storageItem === null) {
             return fallback instanceof Function ? fallback() : fallback ?? null;
         }
 
-        const item: LocalStorageItem = JSON.parse(storageItem);
+        try {
+            const item: LocalStorageItem = JSON.parse(storageItem);
 
-        if (item.expiry && Date.now() > item.expiry) {
-            LocalStorage.remove(key);
+            if (item.expiry && Date.now() > item.expiry) {
+                LocalStorage.remove(key);
 
-            return null;
+                return null;
+            }
+
+            return item.data ?? item;
+        } catch (error) {
+            return storageItem;
         }
-
-        return item.data;
     }
 
     /**
@@ -69,13 +73,13 @@ class LocalStorage {
      * @return { any }
      */
     static remember(key: string, callback: Function, ttl: number | null = null): any {
-        const storageItem: string | null = LocalStorage.get(key);
+        const item: string | null = LocalStorage.get(key);
 
-        if (!storageItem) {
+        if (item === null) {
             LocalStorage.set(key, callback, ttl ?? LocalStorage._ttl);
         }
 
-        return storageItem ?? LocalStorage.get(key);
+        return item ?? LocalStorage.get(key);
     }
 
     /**
@@ -87,11 +91,7 @@ class LocalStorage {
         const storage: object | any = { ...localStorage };
 
         for (const item in storage) {
-            try {
-                storage[item] = LocalStorage.get(item);
-            } catch (exception) {
-                // In case the key was not added through LocalStorage API, return it as is.
-            }
+            storage[item] = LocalStorage.get(item);
         }
 
         return storage;
@@ -182,7 +182,7 @@ class LocalStorage {
     static touch(key: string, ttl: number | null = null): void {
         const item = LocalStorage.get(key);
 
-        if (!item) {
+        if (item === null) {
             return;
         }
 
@@ -197,7 +197,7 @@ class LocalStorage {
     static dump(key: string): void {
         console.log(LocalStorage.get(key));
     }
-};
+}
 
 if (typeof exports != 'undefined') {
     module.exports.LocalStorage = LocalStorage;
