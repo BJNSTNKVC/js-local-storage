@@ -190,6 +190,38 @@ class LocalStorage {
     }
 
     /**
+     * Returns the expiration date for a given key.
+     *
+     * @param { string } key String containing the name of the key you want to check against
+     * @param { boolean } asDate If true, returns the expiration date as a Date object.
+     *
+     * @return { number | Date | null }
+     */
+    static expiry(key: string, asDate: boolean = false): number | Date | null {
+        const storageItem: string | null = localStorage.getItem(key);
+
+        if (storageItem === null) {
+            return null;
+        }
+
+        try {
+            const item: LocalStorageItem | null = JSON.parse(storageItem);
+
+            if (item === null || !item.hasOwnProperty('expiry')) {
+                return null;
+            }
+
+            if (item.expiry === null) {
+                return null;
+            }
+
+            return asDate ? new Date(item.expiry) : item.expiry;
+        } catch (exception) {
+            return null;
+        }
+    }
+
+    /**
      * Dump the key from the Storage object.
      *
      * @param { string } key String containing the name of the key you want to dump.
