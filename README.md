@@ -26,7 +26,6 @@ You can install the package via jsDelivr CDN:
 <script src="https://cdn.jsdelivr.net/npm/@bjnstnkvc/local-storage/lib/main.min.js"></script>
 ```
 
-
 ## Usage
 
 ### set
@@ -34,6 +33,7 @@ You can install the package via jsDelivr CDN:
 Set the value for a given key in the Local Storage.
 
 #### Parameters
+
 - **key** - String containing the name of the key.
 - **value** - The value to be stored.
 - **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
@@ -51,7 +51,7 @@ Retrieve the value associated with the given key from the Local Storage.
 #### Parameters
 
 - **key** - String containing the name of the key.
-- **fallback** *(optional)* - String containing the fallback value. Defaults to `null`.
+- **fallback** *(optional)* - The fallback value in case the key does not exist. Defaults to `null`.
 
 #### Example
 
@@ -63,7 +63,7 @@ You can also pass a closure as the default value. If the specified item is not f
 This allows you to lazily load default values from other sources:
 
 ```javascript
-LocalStorage.get('key', () => { return 'default'});
+LocalStorage.get('key', () => 'default');
 ````
 
 >**Note:** When you attempt to retrieve a value using the `get` method, it checks if the item has expired based on its TTL (Time-To-Live). If the item has indeed expired, it is automatically removed from the LocalStorage, ensuring that your application only works with valid, up-to-date data. 
@@ -93,6 +93,7 @@ Retrieve an object containing all keys and their associated values stored in the
 ```javascript
 LocalStorage.all();
 ```
+
 ### remove
 
 Remove the key and its associated value from the Local Storage.
@@ -106,6 +107,7 @@ Remove the key and its associated value from the Local Storage.
 ```javascript
 LocalStorage.remove('key');
 ```
+
 ### clear
 
 Clear all keys and their associated values from the Local Storage.
@@ -115,6 +117,7 @@ Clear all keys and their associated values from the Local Storage.
 ```javascript
 LocalStorage.clear();
 ```
+
 ### has
 
 Check if a key exists in the Local Storage.
@@ -152,6 +155,7 @@ Check if the Local Storage is empty.
 ```javascript
 LocalStorage.isEmpty();
 ```
+
 ### isNotEmpty
 
 Check if the Local Storage is not empty.
@@ -161,6 +165,7 @@ Check if the Local Storage is not empty.
 ```javascript
 LocalStorage.isNotEmpty();
 ```
+
 ### keys
 
 Retrieve an array containing all keys stored in the Local Storage.
@@ -170,6 +175,7 @@ Retrieve an array containing all keys stored in the Local Storage.
 ```javascript
 LocalStorage.keys();
 ```
+
 ### count
 
 Retrieve the total number of items stored in the Local Storage.
@@ -179,6 +185,7 @@ Retrieve the total number of items stored in the Local Storage.
 ```javascript
 LocalStorage.count();
 ```
+
 ### touch
 
 Update the expiration time of a key in the Local Storage.
@@ -193,6 +200,28 @@ Update the expiration time of a key in the Local Storage.
 ```javascript
 LocalStorage.touch('key', 60);
 ```
+
+### expiry
+
+Retrieve the expiration date for a given key.
+
+#### Parameters
+
+- **key** - String containing the name of the key you want to check against
+- **ttl** *(optional)* - If true, returns the expiration date as a Date object. Defaults to `false`.
+
+#### Example
+
+```javascript
+LocalStorage.expiry('key');
+```
+
+You can also pass a boolean as the second parameter to return the expiration date as a Date object:
+
+```javascript
+LocalStorage.expiry('key', true);
+```
+
 ### dump
 
 Print the value associated with a key to the console.
@@ -208,12 +237,13 @@ LocalStorage.dump('key');
 ```
 
 ### ttl
-Define a global Time-To-Live (TTL) for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
+
+Define a global Time-To-Live (TTL) in seconds for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
 
 #### Example
 
-```typescript
-LocalStorage.ttl(7200); // Set a default TTL of 2 hours (7200 seconds)
+```javascript
+LocalStorage.ttl(7200);
 ```
 
 If a default TTL has been set using `LocalStorage.ttl`, it will be applied to all items set without a specified TTL.
