@@ -207,16 +207,12 @@ class LocalStorage {
         try {
             const item: LocalStorageItem | null = JSON.parse(storageItem);
 
-            if (item === null || !item.hasOwnProperty('expiry')) {
-                return null;
-            }
-
-            if (item.expiry === null) {
+            if (!item?.hasOwnProperty('expiry') || item?.expiry === null) {
                 return null;
             }
 
             return asDate ? new Date(item.expiry) : item.expiry;
-        } catch (exception) {
+        } catch (error) {
             return null;
         }
     }

@@ -208,7 +208,7 @@ Retrieve the expiration date for a given key.
 #### Parameters
 
 - **key** - String containing the name of the key you want to check against
-- **ttl** *(optional)* - If true, returns the expiration date as a Date object. Defaults to `false`.
+- **asDate** *(optional)* - If true, returns the expiration date as a Date object. Defaults to `false`.
 
 #### Example
 
