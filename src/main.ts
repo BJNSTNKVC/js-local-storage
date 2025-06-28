@@ -1,6 +1,9 @@
-import { LocalStorageItem } from './types';
+type LocalStorageItem = {
+    data: any,
+    expiry: number | null
+};
 
-class LocalStorage {
+export class LocalStorage {
     /**
      * Default item validity period in seconds.
      *
@@ -229,13 +232,10 @@ class LocalStorage {
     }
 }
 
-if (typeof exports != 'undefined') {
-    module.exports.LocalStorage = LocalStorage;
+if (typeof window !== 'undefined') {
+    (window as any).LocalStorage = LocalStorage;
 }
 
-// Hack to test this code, global is not available in the browser.
 if (typeof global !== 'undefined') {
-    const _global: any = global;
-
-    _global.LocalStorage = LocalStorage;
+    (global as any).LocalStorage = LocalStorage;
 }
