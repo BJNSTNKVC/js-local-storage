@@ -1,3 +1,5 @@
+import { LocalStorageItem } from './types';
+
 class LocalStorage {
     /**
      * Default item validity period in seconds.
