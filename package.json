@@ -1,11 +1,12 @@
 {
   "name": "@bjnstnkvc/local-storage",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Simple wrapper for JavaScript Local Storage API.",
   "type": "module",
-  "main": "lib/main.umd.js",
+  "main": "lib/main.js",
   "module": "lib/main.esm.js",
   "source": "src/main.ts",
+  "types": "src/main.ts",
   "exports": {
     ".": {
       "import": "./lib/main.esm.js",
@@ -13,10 +14,6 @@
       "default": "./lib/main.umd.js"
     }
   },
-  "files": [
-    "lib/**/*",
-    "src/**/*.d.ts"
-  ],
   "directories": {
     "lib": "lib"
   },
