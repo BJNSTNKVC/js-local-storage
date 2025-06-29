@@ -1,4 +1,4 @@
-type LocalStorageItem = {
+export type LocalStorageItem = {
     data: any,
     expiry: number | null
 };
@@ -9,15 +9,15 @@ export class LocalStorage {
      *
      * @type { number | null }
      */
-    private static _ttl: number | null = null;
+    static #ttl: number | null = null;
 
     /**
      * Set the default item validity period in seconds.
      *
-     * @param {number | null } value
+     * @param { number | null } value
      */
     static ttl(value: number | null) {
-        LocalStorage._ttl = value;
+        this.#ttl = value;
     }
 
     /**
@@ -25,10 +25,10 @@ export class LocalStorage {
      *
      * @param { string } key String containing the name of the key you want to create.
      * @param { * } value Value you want to give the key you are creating.
-     * @param { number|null } ttl Item validity period in seconds.
+     * @param { number | null } ttl Item validity period in seconds.
      */
     static set(key: string, value: any, ttl: number | null = null): void {
-        ttl = ttl ?? LocalStorage._ttl;
+        ttl = ttl ?? this.#ttl;
 
         const item: LocalStorageItem = {
             data  : value instanceof Function ? value() : value,
@@ -57,13 +57,13 @@ export class LocalStorage {
             const item: LocalStorageItem = JSON.parse(storageItem);
 
             if (item.expiry && Date.now() > item.expiry) {
-                LocalStorage.remove(key);
+                this.remove(key);
 
                 return null;
             }
 
             return item.data ?? item;
-        } catch (error) {
+        } catch {
             return storageItem;
         }
     }
@@ -78,13 +78,13 @@ export class LocalStorage {
      * @return { any }
      */
     static remember(key: string, callback: Function, ttl: number | null = null): any {
-        const item: string | null = LocalStorage.get(key);
+        const item: string | null = this.get(key);
 
         if (item === null) {
-            LocalStorage.set(key, callback, ttl ?? LocalStorage._ttl);
+            this.set(key, callback, ttl ?? this.#ttl);
         }
 
-        return item ?? LocalStorage.get(key);
+        return item ?? this.get(key);
     }
 
     /**
@@ -92,14 +92,8 @@ export class LocalStorage {
      *
      * @return { object }
      */
-    static all(): object {
-        const storage: object | any = { ...localStorage };
-
-        for (const item in storage) {
-            storage[item] = LocalStorage.get(item);
-        }
-
-        return storage;
+    static all(): Record<string, any> {
+        return Object.fromEntries(Object.keys(localStorage).map((key: string): [string, any] => [key, this.get(key)]));
     }
 
     /**
@@ -126,7 +120,7 @@ export class LocalStorage {
      * @return { boolean }
      */
     static has(key: string): boolean {
-        return !!LocalStorage.get(key);
+        return !!this.get(key);
     }
 
     /**
@@ -136,11 +130,18 @@ export class LocalStorage {
      *
      * @return { boolean }
      */
-    static hasAny(keys: string | string[]): boolean {
-        keys = keys instanceof Array ? keys : [...arguments];
+    static hasAny(...keys: [string | string[]] | string[]): boolean {
+        if (keys.length === 1) {
+            if (Array.isArray(keys[0])) {
+                keys = keys[0];
+            } else {
+                keys = [keys[0]];
+            }
+        }
 
-        return keys.filter((key: string) => LocalStorage.has(key)).length > 0;
+        return keys.some((key: string): boolean => this.has(key));
     }
+
 
     /**
      * Determine if the Storage object is empty.
@@ -148,7 +149,7 @@ export class LocalStorage {
      * @return { boolean }
      */
     static isEmpty(): boolean {
-        return Object.keys(LocalStorage.all()).length === 0;
+        return Object.keys(this.all()).length === 0;
     }
 
     /**
@@ -157,7 +158,7 @@ export class LocalStorage {
      * @return { boolean }
      */
     static isNotEmpty(): boolean {
-        return !LocalStorage.isEmpty();
+        return !this.isEmpty();
     }
 
     /**
@@ -185,13 +186,13 @@ export class LocalStorage {
      * @param { number | null } ttl Item validity period in seconds.
      */
     static touch(key: string, ttl: number | null = null): void {
-        const item = LocalStorage.get(key);
+        const item = this.get(key);
 
         if (item === null) {
             return;
         }
 
-        LocalStorage.set(key, item, ttl ?? LocalStorage._ttl);
+        this.set(key, item, ttl ?? this.#ttl);
     }
 
     /**
@@ -217,7 +218,7 @@ export class LocalStorage {
             }
 
             return asDate ? new Date(item.expiry) : item.expiry;
-        } catch (error) {
+        } catch {
             return null;
         }
     }
@@ -228,7 +229,7 @@ export class LocalStorage {
      * @param { string } key String containing the name of the key you want to dump.
      */
     static dump(key: string): void {
-        console.log(LocalStorage.get(key));
+        console.log(this.get(key));
     }
 }
 
