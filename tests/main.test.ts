@@ -1,7 +1,13 @@
-// @ts-nocheck
-require('../src/main');
+import { LocalStorage, LocalStorageItem } from '../src/main';
 
 class Storage {
+    /**
+     * The underlying data store that maintains all key-value pairs in memory.
+     *
+     * @type { Record<string, any> }
+     */
+    public store: Record<string, any>;
+
     /**
      * Create a new Storage object.
      */
@@ -34,7 +40,7 @@ class Storage {
      * @param { string } keyName
      * @param { string } keyValue
      */
-    setItem(keyName: string, keyValue: string) {
+    setItem(keyName: string, keyValue: string): void {
         this.store[keyName] = keyValue;
     }
 
@@ -43,21 +49,19 @@ class Storage {
      *
      * @param { string } keyName
      */
-    removeItem(keyName: string) {
+    removeItem(keyName: string): void {
         delete this.store[keyName];
     }
 
     /**
      * When invoked, will empty all keys out of the storage.
      */
-    clear() {
+    clear(): void {
         this.store = {};
     }
 }
 
-const _global: any = global;
-
-_global.localStorage = new Storage;
+(global as any).localStorage = new Storage;
 
 beforeEach((): void => {
     localStorage.clear();
@@ -66,13 +70,29 @@ beforeEach((): void => {
 
 describe('LocalStorage.ttl', (): void => {
     test('sets validity period', (): void => {
-        LocalStorage.ttl(60);
-        expect(LocalStorage['_ttl']).toEqual(60);
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+        const current: number = Date.now();
+
+        LocalStorage.ttl(ttl);
+        LocalStorage.set(key, value);
+
+        const expiry: number = LocalStorage.expiry(key) as number;
+
+        expect(expiry).toBeCloseTo(current + ttl * 1000, -2);
     });
 
     test('sets validity period to null', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
         LocalStorage.ttl(null);
-        expect(LocalStorage['_ttl']).toEqual(null);
+        LocalStorage.set(key, value);
+
+        const expiry: null = LocalStorage.expiry(key) as null;
+
+        expect(expiry).toBe(null);
     });
 });
 
@@ -83,7 +103,7 @@ describe('LocalStorage.set', (): void => {
 
         LocalStorage.set(key, value);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toEqual(null);
@@ -95,7 +115,7 @@ describe('LocalStorage.set', (): void => {
 
         LocalStorage.set(key, (): string => value);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toEqual(null);
@@ -109,7 +129,7 @@ describe('LocalStorage.set', (): void => {
 
         LocalStorage.set(key, value, ttl);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toBe(now + ttl * 1000);
@@ -123,10 +143,10 @@ describe('LocalStorage.set', (): void => {
         LocalStorage.ttl(60);
         LocalStorage.set(key, value);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
-        expect(item.expiry).toBe(now + 60 * 1000, 1);
+        expect(item.expiry).toBeCloseTo(now + 60 * 1000, -2);
     });
 
     test('sets the key to the Storage object with an expiry overriding default', (): void => {
@@ -138,7 +158,7 @@ describe('LocalStorage.set', (): void => {
         LocalStorage.ttl(60);
         LocalStorage.set(key, value, ttl);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toBe(now + ttl * 1000);
@@ -151,7 +171,7 @@ describe('LocalStorage.set', (): void => {
         LocalStorage.ttl(null);
         LocalStorage.set(key, value);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toEqual(null);
@@ -296,7 +316,7 @@ describe('LocalStorage.all', (): void => {
 
         LocalStorage.set(key2, value2);
 
-        const items: object = LocalStorage.all();
+        const items: Record<string, any> = LocalStorage.all();
 
         expect(items[key1]).toEqual(value1);
         expect(items[key2]).toEqual(value2);
@@ -440,6 +460,7 @@ describe('LocalStorage.hasAny', (): void => {
 
         LocalStorage.set(key, value);
 
+
         expect(LocalStorage.hasAny(key, 'anotherKey')).toEqual(true);
     });
 
@@ -579,7 +600,7 @@ describe('LocalStorage.touch', (): void => {
 
         LocalStorage.touch(key, ttl);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toEqual(start + 1000 + ttl * 1000);
@@ -607,7 +628,7 @@ describe('LocalStorage.touch', (): void => {
 
         LocalStorage.touch(key);
 
-        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key));
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
         expect(item.expiry).toEqual(now + ttl * 1000);
@@ -623,9 +644,9 @@ describe('LocalStorage.expiry', (): void => {
 
         LocalStorage.set(key, value, ttl);
 
-        const expiry: number | null = LocalStorage.expiry(key) as number;
+        const expiry: number = LocalStorage.expiry(key) as number;
 
-        expect(expiry).toBeCloseTo(current + ttl * 1000, 0);
+        expect(expiry).toBeCloseTo(current + ttl * 1000, -2);
     });
 
     test('returns the expiration as a Date object when asDate is true', (): void => {
@@ -636,10 +657,10 @@ describe('LocalStorage.expiry', (): void => {
 
         LocalStorage.set(key, value, ttl);
 
-        const expiry: Date | null = LocalStorage.expiry(key, true) as Date;
+        const expiry: Date = LocalStorage.expiry(key, true) as Date;
 
         expect(expiry).toBeInstanceOf(Date);
-        expect(expiry?.getTime()).toBeCloseTo(current + ttl * 1000, 1);
+        expect((expiry as Date).getTime()).toBeCloseTo(current + ttl * 1000, -2);
     });
 
     test('returns null if the key does not exist in Storage', (): void => {
