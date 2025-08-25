@@ -2,17 +2,17 @@ import { LocalStorage, LocalStorageItem } from '../src/main';
 
 class Storage {
     /**
-     * The underlying data store that maintains all key-value pairs in memory.
+     * The underlying data storage that maintains all key-value pairs in memory.
      *
      * @type { Record<string, any> }
      */
-    public store: Record<string, any>;
+    #storage: Record<string, any>;
 
     /**
      * Create a new Storage object.
      */
     constructor() {
-        this.store = {};
+        this.#storage = {};
     }
 
     /**
@@ -21,7 +21,7 @@ class Storage {
      * @return { number }
      */
     get length(): number {
-        return Object.keys(this.store).length;
+        return Object.keys(this.#storage).length;
     }
 
     /**
@@ -31,7 +31,7 @@ class Storage {
      * @return { any }
      */
     getItem(keyName: string): string {
-        return this.store[keyName] || null;
+        return this.#storage[keyName] || null;
     }
 
     /**
@@ -41,7 +41,7 @@ class Storage {
      * @param { string } keyValue
      */
     setItem(keyName: string, keyValue: string): void {
-        this.store[keyName] = keyValue;
+        this.#storage[keyName] = keyValue;
     }
 
     /**
@@ -50,21 +50,22 @@ class Storage {
      * @param { string } keyName
      */
     removeItem(keyName: string): void {
-        delete this.store[keyName];
+        delete this.#storage[keyName];
     }
 
     /**
      * When invoked, will empty all keys out of the storage.
      */
     clear(): void {
-        this.store = {};
+        this.#storage = {};
     }
 }
 
-(global as any).localStorage = new Storage;
-
 beforeEach((): void => {
+    (global as any).localStorage = new Storage;
+
     localStorage.clear();
+
     LocalStorage.ttl(null);
 });
 
@@ -316,10 +317,10 @@ describe('LocalStorage.all', (): void => {
 
         LocalStorage.set(key2, value2);
 
-        const items: Record<string, any> = LocalStorage.all();
+        const items: { key: string, value: any }[] = LocalStorage.all();
 
-        expect(items[key1]).toEqual(value1);
-        expect(items[key2]).toEqual(value2);
+        expect((items[0] as { key: string, value: any })).toEqual({ key: key1, value: value1 });
+        expect(items[1] as { key: string, value: any }).toEqual({ key: key2, value: value2 });
     });
 
     test('retrieves an empty object if Storage is empty', (): void => {
@@ -327,7 +328,7 @@ describe('LocalStorage.all', (): void => {
 
         const items: object = LocalStorage.all();
 
-        expect(items).toEqual({});
+        expect(items).toEqual([]);
     });
 });
 

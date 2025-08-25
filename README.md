@@ -86,13 +86,15 @@ LocalStorage.remember('key', () => 'default', 60);
 
 ### all
 
-Retrieve an object containing all keys and their associated values stored in the Local Storage.
+Retrieve an array containing all keys and their associated values stored in the Local Storage.
 
 #### Example
 
 ```javascript
 LocalStorage.all();
 ```
+
+> **Note:** The `all` method returns an array of objects with `key` and `value` properties (e.g. `[{ key: 'key', value: 'value' }]`)
 
 ### remove
 
