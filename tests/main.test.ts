@@ -1,72 +1,10 @@
 import { LocalStorage, LocalStorageItem } from '../src/main';
 
-class Storage {
-    /**
-     * The underlying data storage that maintains all key-value pairs in memory.
-     *
-     * @type { Record<string, any> }
-     */
-    #storage: Record<string, any>;
-
-    /**
-     * Create a new Storage object.
-     */
-    constructor() {
-        this.#storage = {};
-    }
-
-    /**
-     * Returns an integer representing the number of data items stored in the Storage object.
-     *
-     * @return { number }
-     */
-    get length(): number {
-        return Object.keys(this.#storage).length;
-    }
-
-    /**
-     * When passed a key name, will return that key's value.
-     *
-     * @param { string } keyName
-     * @return { any }
-     */
-    getItem(keyName: string): string {
-        return this.#storage[keyName] || null;
-    }
-
-    /**
-     * When passed a key name and value, will add that key to the storage, or update that key's value if it already exists.
-     *
-     * @param { string } keyName
-     * @param { string } keyValue
-     */
-    setItem(keyName: string, keyValue: string): void {
-        this.#storage[keyName] = keyValue;
-    }
-
-    /**
-     * When passed a key name, will remove that key from the storage.
-     *
-     * @param { string } keyName
-     */
-    removeItem(keyName: string): void {
-        delete this.#storage[keyName];
-    }
-
-    /**
-     * When invoked, will empty all keys out of the storage.
-     */
-    clear(): void {
-        this.#storage = {};
-    }
-}
-
 beforeEach((): void => {
-    (global as any).localStorage = new Storage;
-
     localStorage.clear();
 
     LocalStorage.ttl(null);
+    LocalStorage.restore();
 });
 
 describe('LocalStorage.ttl', (): void => {
@@ -684,11 +622,89 @@ describe('LocalStorage.dump', (): void => {
     it('logs the stored item to the console', (): void => {
         const $console: jest.SpyInstance<void, [message?: any, ...optionalParams: any[]]> = jest.spyOn(console, 'log').mockImplementation();
 
-        LocalStorage.set('$key', '$value');
-        LocalStorage.dump('$key');
+        const key: string = '$key';
+        const value: string = '$value';
 
-        expect($console).toHaveBeenCalledWith('$value');
+        LocalStorage.set(key, value);
+        LocalStorage.dump(key);
+
+        expect($console).toHaveBeenCalledWith(value);
 
         $console.mockRestore();
+    });
+});
+
+describe('LocalStorage.fake', (): void => {
+    test('sets fake as Storage instance', (): void => {
+        LocalStorage.fake();
+
+        expect(LocalStorage.isFake()).toBeTruthy();
+    });
+
+    test('interacts with fake Storage', (): void => {
+        LocalStorage.fake();
+
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        expect(LocalStorage.get(key)).toEqual(value);
+        expect(LocalStorage.count()).toEqual(1);
+        expect(LocalStorage.keys()).toContain(key);
+
+        LocalStorage.clear();
+
+        expect(LocalStorage.count()).toEqual(0);
+    });
+
+
+    test('sets new fake instance on multiple calls', (): void => {
+        LocalStorage.fake();
+
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        expect(LocalStorage.get(key)).toBe(value);
+        expect(LocalStorage.count()).toBe(1);
+
+        LocalStorage.fake();
+
+        expect(LocalStorage.get(key)).toBeNull();
+        expect(LocalStorage.count()).toBe(0);
+    });
+});
+
+describe('LocalStorage.restore', (): void => {
+    test('restores Storage instance', (): void => {
+        LocalStorage.fake();
+
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        LocalStorage.restore();
+
+        expect(LocalStorage.isFake()).toBeFalsy();
+        expect(LocalStorage.get(key)).toBeNull();
+        expect(LocalStorage.count()).toBe(0);
+    });
+});
+
+describe('LocalStorage.isFake', (): void => {
+    test('returns true when fake Storage is set', (): void => {
+        LocalStorage.fake();
+
+        expect(LocalStorage.isFake()).toBe(true);
+    });
+
+    test('returns false when Storage is restored', (): void => {
+        LocalStorage.fake();
+        LocalStorage.restore();
+
+        expect(LocalStorage.isFake()).toBe(false);
     });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@bjnstnkvc/local-storage",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Simple wrapper for JavaScript Local Storage API.",
   "type": "module",
   "main": "lib/main.js",
@@ -39,13 +39,13 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@types/jest": "^29.5.14",
-    "@types/node": "^20.19.1",
+    "@types/node": "^20.19.17",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "rollup": "^4.44.1",
+    "rollup": "^4.52.0",
     "rollup-plugin-typescript2": "^0.36.0",
-    "terser": "^5.43.1",
-    "ts-jest": "^29.4.0",
-    "typescript": "^5.8.3"
+    "terser": "^5.44.0",
+    "ts-jest": "^29.4.4",
+    "typescript": "^5.9.2"
   }
 }
