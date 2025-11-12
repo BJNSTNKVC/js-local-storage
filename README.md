@@ -238,6 +238,42 @@ Print the value associated with a key to the console.
 LocalStorage.dump('key');
 ```
 
+### fake
+
+Replace the Local Storage instance with a fake implementation. This is particularly useful for testing purposes where you want to avoid interacting with the actual browser's Local Storage.
+
+#### Example
+
+```javascript
+LocalStorage.fake();
+```
+
+### restore
+
+Restore the original Local Storage instance. This is typically used after [fake()](#fake) to return to using the real browser's Local Storage.
+
+#### Example
+
+```javascript
+LocalStorage.restore();
+```
+
+### isFake
+
+Check if a fake Local Storage instance is currently being used.
+
+#### Returns
+
+- **boolean** - `true` if a fake instance is being used, `false` otherwise.
+
+#### Example
+
+```javascript
+if (LocalStorage.isFake()) {
+    // ...
+}
+```
+
 ### ttl
 
 Define a global Time-To-Live (TTL) in seconds for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
