@@ -1,32 +1,33 @@
 {
-    "compilerOptions": {
-        "lib"                     : [
-            "ESNext",
-            "dom"
-        ],
-        "outDir"                  : "lib",
-        "removeComments"          : false,
-        "target"                  : "ES6",
-        "baseUrl"                 : "./",
-        "esModuleInterop"         : true,
-        "moduleResolution"        : "node",
-        "paths"                   : {},
-        "sourceMap"               : true,
-        "sourceRoot"              : "/",
-        "alwaysStrict"            : true,
-        "allowUnreachableCode"    : false,
-        "noImplicitAny"           : true,
-        "strictNullChecks"        : true,
-        "noImplicitReturns"       : true,
-        "noUncheckedIndexedAccess": true,
-        "noUnusedLocals"          : true,
-        "noUnusedParameters"      : false,
-        "useDefineForClassFields" : true
-    },
-    "include"        : [
-        "./src/*.ts"
-    ],
-    "exclude"        : [
-        "node_modules/**/*"
-    ]
+  "compilerOptions": {
+	"lib": [
+	  "ESNext",
+	  "dom"
+	],
+	"outDir": "lib",
+	"removeComments": false,
+	"module": "es2020",
+	"target": "ES6",
+	"baseUrl": "./",
+	"esModuleInterop": true,
+	"moduleResolution": "node",
+	"paths": {},
+	"sourceMap": true,
+	"sourceRoot": "/",
+	"alwaysStrict": true,
+	"allowUnreachableCode": false,
+	"noImplicitAny": true,
+	"strictNullChecks": true,
+	"noImplicitReturns": true,
+	"noUncheckedIndexedAccess": true,
+	"noUnusedLocals": true,
+	"noUnusedParameters": false,
+	"useDefineForClassFields": true
+  },
+  "include": [
+	"./src/*.ts"
+  ],
+  "exclude": [
+	"node_modules/**/*"
+  ]
 }

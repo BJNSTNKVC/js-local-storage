@@ -210,7 +210,6 @@ Retrieve the expiration date for a given key.
 #### Parameters
 
 - **key** - String containing the name of the key you want to check against
-- **asDate** *(optional)* - If true, returns the expiration date as a Date object. Defaults to `false`.
 
 #### Example
 
@@ -261,10 +260,6 @@ LocalStorage.restore();
 ### isFake
 
 Check if a fake Local Storage instance is currently being used.
-
-#### Returns
-
-- **boolean** - `true` if a fake instance is being used, `false` otherwise.
 
 #### Example
 
