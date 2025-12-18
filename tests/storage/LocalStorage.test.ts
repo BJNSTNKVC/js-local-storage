@@ -1,12 +1,38 @@
-import { LocalStorage, type LocalStorageItem } from '../../src/main';
+import {
+    KeyForgotFailed,
+    KeyForgotten,
+    KeyHit,
+    KeyMissed,
+    KeyWriteFailed,
+    KeyWritten,
+    LocalStorage,
+    type LocalStorageEvent,
+    type LocalStorageItem,
+    RetrievingKey,
+    StorageFlushed,
+    StorageFlushing,
+    WritingKey
+} from '../../src/main';
+
+// @ts-expect-error
+const emit: typeof LocalStorage.emit = LocalStorage.emit;
+
+// Returns the first event emitted by the listener from the mock call stack.
+const getEventFromMockCalls: (listener: jest.Mock) => LocalStorageEvent[keyof LocalStorageEvent] = (listener: jest.Mock) => listener.mock.calls[0][0];
+
+let events: Map<string, Event> = new Map();
 
 beforeEach((): void => {
     LocalStorage.ttl(null);
-    LocalStorage.restore();
+    // @ts-expect-error
+    LocalStorage.emit = jest.fn((event: Event) => events.set(event.type, event));
 });
 
 afterEach((): void => {
     LocalStorage.clear();
+    LocalStorage.restore();
+
+    events.clear();
 });
 
 describe('LocalStorage.ttl', (): void => {
@@ -127,6 +153,57 @@ describe('LocalStorage.set', (): void => {
 
         expect(result).toBeFalsy();
     });
+
+    test('emits WritingKey event before setting the value', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+        const now: number = Date.now();
+
+        LocalStorage.set(key, value, ttl);
+
+        const event: WritingKey = events.get('local-storage:writing') as WritingKey;
+
+        expect(events.has('local-storage:writing')).toBeTruthy();
+        expect(event).toBeInstanceOf(WritingKey);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+        expect(event.expiry).toBe(now + ttl * 1000);
+    });
+
+    test('emits KeyWritten event after successful set operation', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+        const now: number = Date.now();
+
+        LocalStorage.set(key, value, ttl);
+
+        const event: KeyWritten = events.get('local-storage:written') as KeyWritten;
+
+        expect(events.has('local-storage:written')).toBeTruthy();
+        expect(event).toBeInstanceOf(KeyWritten);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+        expect(event.expiry).toBe(now + ttl * 1000);
+    });
+
+    test('emits KeyWriteFailed event when storage insertion operation fails', (): void => {
+        const key: string = '$key';
+        const value: string = 'x'.repeat(5 * 1024 * 1024);
+        const ttl: number = 60;
+        const now: number = Date.now();
+
+        LocalStorage.set(key, value, ttl);
+
+        const event: KeyWriteFailed = events.get('local-storage:write-failed') as KeyWriteFailed;
+
+        expect(events.has('local-storage:write-failed')).toBeTruthy();
+        expect(event).toBeInstanceOf(KeyWriteFailed);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+        expect(event.expiry).toBe(now + ttl * 1000);
+    });
 });
 
 describe('LocalStorage.get', (): void => {
@@ -135,15 +212,6 @@ describe('LocalStorage.get', (): void => {
         const value: string = '$value';
 
         LocalStorage.set(key, value);
-
-        expect(LocalStorage.get(key)).toEqual(value);
-    });
-
-    test('retrieves values set directly via localStorage API', (): void => {
-        const key: string = '$key';
-        const value: string = '$value';
-
-        localStorage.setItem(key, value)
 
         expect(LocalStorage.get(key)).toEqual(value);
     });
@@ -192,6 +260,49 @@ describe('LocalStorage.get', (): void => {
 
         expect(LocalStorage.get(key)).toEqual(value);
     });
+
+    test('emits RetrievingKey event before getting the value', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        expect(LocalStorage.get(key)).toEqual(value);
+
+        const event: RetrievingKey = events.get('local-storage:retrieving') as RetrievingKey;
+
+        expect(events.has('local-storage:retrieving')).toBeTruthy();
+        expect(event).toBeInstanceOf(RetrievingKey);
+        expect(event.key).toBe(key);
+    });
+
+    test('emits KeyHit event after successful get operation', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        expect(LocalStorage.get(key)).toEqual(value);
+
+        const event: KeyHit = events.get('local-storage:hit') as KeyHit;
+
+        expect(events.has('local-storage:hit')).toBeTruthy();
+        expect(event).toBeInstanceOf(KeyHit);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+
+    test('emits KeyMissed event when storage retrieval operation fails', (): void => {
+        const key: string = '$key';
+
+        expect(LocalStorage.get(key)).toBeNull();
+
+        const event: KeyMissed = events.get('local-storage:missed') as KeyMissed;
+
+        expect(events.has('local-storage:missed')).toBeTruthy();
+        expect(event).toBeInstanceOf(KeyMissed);
+        expect(event.key).toBe(key);
+    });
 });
 
 describe('LocalStorage.remember', (): void => {
@@ -200,15 +311,6 @@ describe('LocalStorage.remember', (): void => {
         const value: string = '$value';
 
         LocalStorage.set(key, value);
-
-        expect(LocalStorage.remember(key, (): string => 'fallback')).toEqual(value);
-    });
-
-    test('returns the value for a key in Storage set directly via localStorage API', (): void => {
-        const key: string = '$key';
-        const value: string = '$value';
-
-        localStorage.setItem(key, value)
 
         expect(LocalStorage.remember(key, (): string => 'fallback')).toEqual(value);
     });
@@ -321,6 +423,33 @@ describe('LocalStorage.remove', (): void => {
         expect(result).toBeFalsy();
         expect(LocalStorage.get(key)).toEqual(null);
     });
+
+    test('emits KeyForgotten event after successful remove operation', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        LocalStorage.remove(key);
+
+        const event: KeyForgotten = events.get('local-storage:forgot') as KeyForgotten;
+
+        expect(events.has('local-storage:forgot')).toBeTruthy();
+        expect(event).toBeInstanceOf(KeyForgotten);
+        expect(event.key).toBe(key);
+    });
+
+    test('emits KeyForgotFailed event when storage removal operation fails', (): void => {
+        const key: string = '$key';
+
+        LocalStorage.remove(key);
+
+        const event: KeyForgotFailed = events.get('local-storage:forgot-failed') as KeyForgotFailed;
+
+        expect(events.has('local-storage:forgot-failed')).toBeTruthy();
+        expect(event).toBeInstanceOf(KeyForgotFailed);
+        expect(event.key).toBe(key);
+    });
 });
 
 describe('LocalStorage.clear', (): void => {
@@ -357,6 +486,44 @@ describe('LocalStorage.clear', (): void => {
         LocalStorage.clear();
 
         expect(LocalStorage.get(key)).toEqual(null);
+    });
+
+    test('emits StorageFlushing event before clearing all keys from Storage', (): void => {
+        const key1: string = '$key1';
+        const value1: string = '$value1';
+
+        LocalStorage.set(key1, value1);
+
+        const key2: string = '$key2';
+        const value2: string = '$value2';
+
+        LocalStorage.set(key2, value2);
+
+        LocalStorage.clear();
+
+        const event: StorageFlushing = events.get('local-storage:flushing') as StorageFlushing;
+
+        expect(events.has('local-storage:flushing')).toBeTruthy();
+        expect(event).toBeInstanceOf(StorageFlushing);
+    });
+
+    test('emits StorageFlushed after clearing all keys from Storage', (): void => {
+        const key1: string = '$key1';
+        const value1: string = '$value1';
+
+        LocalStorage.set(key1, value1);
+
+        const key2: string = '$key2';
+        const value2: string = '$value2';
+
+        LocalStorage.set(key2, value2);
+
+        LocalStorage.clear();
+
+        const event: StorageFlushed = events.get('local-storage:flushed') as StorageFlushed;
+
+        expect(events.has('local-storage:flushed')).toBeTruthy();
+        expect(event).toBeInstanceOf(StorageFlushed);
     });
 });
 
@@ -401,6 +568,23 @@ describe('LocalStorage.has', (): void => {
         const key: string = '$key';
 
         expect(LocalStorage.has(key)).toEqual(false);
+    });
+});
+
+describe('LocalStorage.missing', (): void => {
+    test('returns true if the key does not exist in Storage', (): void => {
+        const key: string = '$key';
+
+        expect(LocalStorage.missing(key)).toBeTruthy();
+    });
+
+    test('returns false if the key exists in Storage', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+
+        expect(LocalStorage.missing(key)).toBeFalsy();
     });
 });
 
@@ -718,13 +902,431 @@ describe('LocalStorage.isFake', (): void => {
     test('returns true when fake Storage is set', (): void => {
         LocalStorage.fake();
 
-        expect(LocalStorage.isFake()).toBe(true);
+        expect(LocalStorage.isFake()).toBeTruthy();
     });
 
     test('returns false when Storage is restored', (): void => {
         LocalStorage.fake();
         LocalStorage.restore();
 
-        expect(LocalStorage.isFake()).toBe(false);
+        expect(LocalStorage.isFake()).toBeFalsy();
+    });
+});
+
+describe('LocalStorage.listen', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "retrieving" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+
+        LocalStorage.listen('retrieving', listener);
+        LocalStorage.get(key);
+
+        const event = getEventFromMockCalls(listener) as RetrievingKey;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(RetrievingKey);
+        expect(event.key).toBe(key);
+    });
+
+    test('registers a listener for "hit" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.listen('hit', listener);
+        LocalStorage.set(key, value);
+        LocalStorage.get(key);
+
+        const event: KeyHit = getEventFromMockCalls(listener) as KeyHit;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyHit);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+
+    test('registers a listener for "missed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+
+        LocalStorage.listen('missed', listener);
+        LocalStorage.get(key);
+
+        const event: KeyMissed = getEventFromMockCalls(listener) as KeyMissed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyMissed);
+        expect(event.key).toBe(key);
+    });
+
+    test('registers a listener for "writing" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+        const now: number = Date.now();
+
+        LocalStorage.listen('writing', listener);
+        LocalStorage.set(key, value, ttl);
+
+        const event: WritingKey = getEventFromMockCalls(listener) as WritingKey;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(WritingKey);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+        expect(event.expiry).toBe(now + ttl * 1000);
+    });
+
+    test('registers a listener for "written" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.listen('written', listener);
+        LocalStorage.set(key, value);
+
+        const event: KeyWritten = getEventFromMockCalls(listener) as KeyWritten;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyWritten);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+
+    test('registers a listener for "write-failed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = 'x'.repeat(5 * 1024 * 1024);
+        const ttl: number = 60;
+
+        LocalStorage.listen('write-failed', listener);
+        LocalStorage.set(key, value, ttl);
+
+        const event: KeyWriteFailed = getEventFromMockCalls(listener) as KeyWriteFailed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyWriteFailed);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+
+    test('registers a listener for "forgot" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+        LocalStorage.listen('forgot', listener);
+        LocalStorage.remove(key);
+
+        const event: KeyForgotten = getEventFromMockCalls(listener) as KeyForgotten;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyForgotten);
+        expect(event.key).toBe(key);
+    });
+
+    test('registers a listener for "forgot-failed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+
+        LocalStorage.listen('forgot-failed', listener);
+        LocalStorage.remove(key);
+
+        const event: KeyForgotFailed = getEventFromMockCalls(listener) as KeyForgotFailed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyForgotFailed);
+        expect(event.key).toBe(key);
+    });
+
+    test('registers a listener for "flushing" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+
+        LocalStorage.listen('flushing', listener);
+        LocalStorage.clear();
+
+        const event: StorageFlushing = getEventFromMockCalls(listener) as StorageFlushing;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(StorageFlushing);
+    });
+
+    test('registers a listener for "flushed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+
+        LocalStorage.listen('flushed', listener);
+        LocalStorage.clear();
+
+        const event: StorageFlushed = getEventFromMockCalls(listener) as StorageFlushed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(StorageFlushed);
+    });
+
+    test('registers multiple listeners at once', (): void => {
+        const listeners: Record<keyof LocalStorageEvent, jest.Mock> = {
+            'retrieving'   : jest.fn(),
+            'hit'          : jest.fn(),
+            'missed'       : jest.fn(),
+            'writing'      : jest.fn(),
+            'written'      : jest.fn(),
+            'write-failed' : jest.fn(),
+            'forgot'       : jest.fn(),
+            'forgot-failed': jest.fn(),
+            'flushing'     : jest.fn(),
+            'flushed'      : jest.fn()
+        };
+
+        LocalStorage.listen(listeners);
+
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+
+        LocalStorage.get(key);
+
+        expect(listeners['retrieving']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['retrieving'])).toBeInstanceOf(RetrievingKey);
+
+        expect(listeners['missed']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['missed'])).toBeInstanceOf(KeyMissed);
+
+        LocalStorage.set(key, value, ttl);
+
+        expect(listeners['writing']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['writing'])).toBeInstanceOf(WritingKey);
+
+        expect(listeners['written']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['written'])).toBeInstanceOf(KeyWritten);
+
+        LocalStorage.set(key.repeat(5 * 1024 * 1024), value);
+
+        expect(listeners['write-failed']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['write-failed'])).toBeInstanceOf(KeyWriteFailed);
+
+        LocalStorage.get(key);
+
+        expect(listeners['hit']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['hit'])).toBeInstanceOf(KeyHit);
+
+        LocalStorage.remove(key);
+
+        expect(listeners['forgot']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['forgot'])).toBeInstanceOf(KeyForgotten);
+
+        LocalStorage.remove('$key-1');
+
+        expect(listeners['forgot-failed']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['forgot-failed'])).toBeInstanceOf(KeyForgotFailed);
+
+        LocalStorage.clear();
+
+        expect(listeners['flushing']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['flushing'])).toBeInstanceOf(StorageFlushing);
+
+        expect(listeners['flushed']).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners['flushed'])).toBeInstanceOf(StorageFlushed);
+    });
+});
+
+describe('LocalStorage.onRetrieving', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "retrieving" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+
+        LocalStorage.onRetrieving(listener);
+        LocalStorage.get(key);
+
+        const event: RetrievingKey = getEventFromMockCalls(listener) as RetrievingKey;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(RetrievingKey);
+        expect(event.key).toBe(key);
+    });
+});
+
+describe('LocalStorage.onHit', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "hit" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+        LocalStorage.onHit(listener);
+        LocalStorage.get(key);
+
+        const event: KeyHit = getEventFromMockCalls(listener) as KeyHit;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyHit);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+});
+
+describe('LocalStorage.onMissed', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "missed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+
+        LocalStorage.onMissed(listener);
+        LocalStorage.get(key);
+
+        const event: KeyMissed = getEventFromMockCalls(listener) as KeyMissed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyMissed);
+        expect(event.key).toBe(key);
+    });
+});
+
+describe('LocalStorage.onWriting', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "writing" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.onWriting(listener);
+        LocalStorage.set(key, value);
+
+        const event: WritingKey = getEventFromMockCalls(listener) as WritingKey;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(WritingKey);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+});
+
+describe('LocalStorage.onWritten', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "written" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.onWritten(listener);
+        LocalStorage.set(key, value);
+
+        const event: KeyWritten = getEventFromMockCalls(listener) as KeyWritten;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyWritten);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+});
+
+describe('LocalStorage.onWriteFailed', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "write-failed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = 'x'.repeat(5 * 1024 * 1024); // Too large for localStorage
+
+        LocalStorage.onWriteFailed(listener);
+        LocalStorage.set(key, value);
+
+        const event: KeyWriteFailed = getEventFromMockCalls(listener) as KeyWriteFailed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyWriteFailed);
+        expect(event.key).toBe(key);
+        expect(event.value).toBe(value);
+    });
+});
+
+describe('LocalStorage.onForgot', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "forgot" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+        const value: string = '$value';
+
+        LocalStorage.set(key, value);
+        LocalStorage.onForgot(listener);
+        LocalStorage.remove(key);
+
+        const event: KeyForgotten = getEventFromMockCalls(listener) as KeyForgotten;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyForgotten);
+        expect(event.key).toBe(key);
+    });
+});
+
+describe('LocalStorage.onForgotFailed', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "forgot-failed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+        const key: string = '$key';
+
+        LocalStorage.onForgotFailed(listener);
+        LocalStorage.remove(key);
+
+        const event: KeyForgotFailed = getEventFromMockCalls(listener) as KeyForgotFailed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(KeyForgotFailed);
+        expect(event.key).toBe(key);
+    });
+});
+
+describe('LocalStorage.onFlushing', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "flushing" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+
+        LocalStorage.onFlushing(listener);
+        LocalStorage.clear();
+
+        const event: StorageFlushing = getEventFromMockCalls(listener) as StorageFlushing;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(StorageFlushing);
+    });
+});
+
+describe('LocalStorage.onFlushed', (): void => {
+    // @ts-expect-error
+    beforeEach((): void => LocalStorage.emit = emit);
+
+    test('registers a listener for "flushed" event', (): void => {
+        const listener: jest.Mock = jest.fn();
+
+        LocalStorage.onFlushed(listener);
+        LocalStorage.clear();
+
+        const event: StorageFlushed = getEventFromMockCalls(listener) as StorageFlushed;
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(event).toBeInstanceOf(StorageFlushed);
     });
 });

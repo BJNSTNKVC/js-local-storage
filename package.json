@@ -1,6 +1,6 @@
 {
   "name": "@bjnstnkvc/local-storage",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Simple wrapper for JavaScript Local Storage API.",
   "type": "module",
   "main": "lib/main.js",

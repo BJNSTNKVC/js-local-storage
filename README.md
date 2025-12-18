@@ -23,6 +23,7 @@ import { LocalStorage } from '@bjnstnkvc/local-storage';
 You can install the package via jsDelivr CDN:
 
 ```html
+
 <script src="https://cdn.jsdelivr.net/npm/@bjnstnkvc/local-storage/lib/main.min.js"></script>
 ```
 
@@ -36,7 +37,8 @@ Set the value for a given key in the Local Storage.
 
 - **key** - String containing the name of the key.
 - **value** - The value to be stored.
-- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
+- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal
+  to [LocalStorage.ttl](#ttl) value.
 
 #### Example
 
@@ -59,24 +61,29 @@ Retrieve the value associated with the given key from the Local Storage.
 LocalStorage.get('key', 'default');
 ````
 
-You can also pass a closure as the default value. If the specified item is not found in the Local Storage, the closure will be executed and its result returned. 
+You can also pass a closure as the default value. If the specified item is not found in the Local Storage, the closure
+will be executed and its result returned.
 This allows you to lazily load default values from other sources:
 
 ```javascript
 LocalStorage.get('key', () => 'default');
 ````
 
->**Note:** When you attempt to retrieve a value using the `get` method, it checks if the item has expired based on its TTL (Time-To-Live). If the item has indeed expired, it is automatically removed from the LocalStorage, ensuring that your application only works with valid, up-to-date data. 
+> **Note:** When you attempt to retrieve a value using the `get` method, it checks if the item has expired based on its
+> TTL (Time-To-Live). If the item has indeed expired, it is automatically removed from the LocalStorage, ensuring that
+> your application only works with valid, up-to-date data.
 
 ### remember
 
-Retrieve the value associated with the given key, or execute the given callback and store the result in the Local Storage.
+Retrieve the value associated with the given key, or execute the given callback and store the result in the Local
+Storage.
 
 #### Parameters
 
 - **key** - String containing the name of the key.
 - **fallback** - Function you want to execute.
-- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
+- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal
+  to [LocalStorage.ttl](#ttl) value.
 
 #### Example
 
@@ -94,7 +101,8 @@ Retrieve an array containing all keys and their associated values stored in the 
 LocalStorage.all();
 ```
 
-> **Note:** The `all` method returns an array of objects with `key` and `value` properties (e.g. `[{ key: 'key', value: 'value' }]`)
+> **Note:** The `all` method returns an array of objects with `key` and `value` properties (e.g.
+`[{ key: 'key', value: 'value' }]`)
 
 ### remove
 
@@ -132,6 +140,20 @@ Check if a key exists in the Local Storage.
 
 ```javascript
 LocalStorage.has('key');
+```
+
+### missing
+
+Check if a key does not exist in the Local Storage.
+
+#### Parameters
+
+- **key** - String containing the name of the key to be checked.
+
+#### Example
+
+```javascript
+LocalStorage.missing('key');
 ```
 
 ### hasAny
@@ -195,7 +217,8 @@ Update the expiration time of a key in the Local Storage.
 #### Parameters
 
 - **key** - String containing the name of the key.
-- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal to [LocalStorage.ttl](#ttl) value.
+- **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal
+  to [LocalStorage.ttl](#ttl) value.
 
 #### Example
 
@@ -239,7 +262,8 @@ LocalStorage.dump('key');
 
 ### fake
 
-Replace the Local Storage instance with a fake implementation. This is particularly useful for testing purposes where you want to avoid interacting with the actual browser's Local Storage.
+Replace the Local Storage instance with a fake implementation. This is particularly useful for testing purposes where
+you want to avoid interacting with the actual browser's Local Storage.
 
 #### Example
 
@@ -249,7 +273,8 @@ LocalStorage.fake();
 
 ### restore
 
-Restore the original Local Storage instance. This is typically used after [fake()](#fake) to return to using the real browser's Local Storage.
+Restore the original Local Storage instance. This is typically used after [fake()](#fake) to return to using the real
+browser's Local Storage.
 
 #### Example
 
@@ -271,7 +296,9 @@ if (LocalStorage.isFake()) {
 
 ### ttl
 
-Define a global Time-To-Live (TTL) in seconds for all items saved using the [LocalStorage.set](#set) or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for applications needing a consistent expiry policy for most stored data.
+Define a global Time-To-Live (TTL) in seconds for all items saved using the [LocalStorage.set](#set)
+or [LocalStorage.touch](#touch) method, without specifying a TTL for each item. This can be particularly useful for
+applications needing a consistent expiry policy for most stored data.
 
 #### Example
 
@@ -280,3 +307,177 @@ LocalStorage.ttl(7200);
 ```
 
 If a default TTL has been set using `LocalStorage.ttl`, it will be applied to all items set without a specified TTL.
+
+## Events
+
+In case you would like to execute a callback on Local Storage operation, you may listen for various events dispatched by
+the Local Storage.
+
+| Type            | Event           |
+|-----------------|-----------------|
+| `retrieving`    | RetrievingKey   |
+| `hit`           | KeyHit          |
+| `missed`        | KeyMissed       |
+| `writing`       | WritingKey      |
+| `written`       | KeyWritten      |
+| `write-failed`  | KeyWriteFailed  |
+| `forgot`        | KeyForgotten    |
+| `forgot-failed` | KeyForgotFailed |
+| `flushing`      | StorageFlushing |
+| `flushed`       | StorageFlushed  |
+
+### listen
+
+Register an event listener for one or more storage events.
+
+#### Parameters
+
+- **events** - String or an object of strings containing the type and a callback function.
+- **callback** - Function to be executed when the event is dispatched in case an event is passed as a string.
+
+#### Example
+
+```javascript
+LocalStorage.listen('retrieving', (event) => {
+    console.log(event);
+});
+```
+
+In case you would like to register multiple events, you can pass an object containing the type and a callback function:
+
+```javascript
+LocalStorage.listen({
+    'retrieving': (event) => {
+        // ...
+    },
+    'hit': (event) => {
+        // ...
+    },
+    'missed': (event) => {
+        // ...
+    },
+    'writing': (event) => {
+        // ...
+    },
+    'written': (event) => {
+        // ...
+    },
+    'write-failed': (event) => {
+        // ...
+    },
+    'forgot': (event) => {
+        // ...
+    },
+    'forgot-failed': (event) => {
+        // ...
+    },
+    'flushing': (event) => {
+        // ...
+    },
+    'flushed': (event) => {
+        // ...
+    },
+});
+```
+
+Conveniently, you can also use the following methods to register event listeners for a specific event:
+
+### onRetrieving
+
+Triggered when a key is about to be retrieved from storage.
+
+```javascript
+LocalStorage.onRetrieving((event) => {
+  // ...
+});
+```
+
+### onHit
+
+Triggered when a requested key is found in the storage.
+
+```javascript
+LocalStorage.onHit((event) => {
+  // ...
+});
+```
+
+### onMissed
+
+Triggered when a requested key is not found in the storage.
+
+```javascript
+LocalStorage.onMissed((event) => {
+  // ...
+});
+```
+
+### onWriting
+
+Triggered when a key is about to be written to storage.
+
+```javascript
+LocalStorage.onWriting((event) => {
+  // ...
+});
+```
+
+### onWritten
+
+Triggered after a key has been successfully written to storage.
+
+```javascript
+LocalStorage.onWritten((event) => {
+  // ...
+});
+```
+
+### onWriteFailed
+
+Triggered when writing a key to storage fails.
+
+```javascript
+LocalStorage.onWriteFailed((event) => {
+  // ...
+});
+```
+
+### onForgot
+
+Triggered when a key is successfully removed from storage.
+
+```javascript
+LocalStorage.onForgot((event) => {
+  // ...
+});
+```
+
+### onForgotFailed
+
+Triggered when removing a key from storage fails.
+
+```javascript
+LocalStorage.onForgotFailed((event) => {
+  // ...
+});
+```
+
+### onFlushing
+
+Triggered when the storage is about to be cleared.
+
+```javascript
+LocalStorage.onFlushing((event) => {
+  // ...
+});
+```
+
+### onFlushed
+
+Triggered after the storage has been successfully cleared.
+
+```javascript
+LocalStorage.onFlushed((event) => {
+    // ...
+});
+```
