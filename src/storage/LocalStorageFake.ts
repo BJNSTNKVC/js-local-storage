@@ -4,7 +4,7 @@ export class LocalStorageFake implements Storage {
      *
      * @type { number }
      */
-    #space: number = 0;
+    #used: number = 0;
 
     /**
      * Maximum storage quota (5MB for most modern browsers).
@@ -24,7 +24,7 @@ export class LocalStorageFake implements Storage {
      * Create a new Storage instance.
      */
     constructor() {
-        this.#space = this.space();
+        this.#used = this.space();
     }
 
     /**
@@ -64,7 +64,7 @@ export class LocalStorageFake implements Storage {
 
         this[keyName] = value;
 
-        this.#space = this.space();
+        this.#used = this.space();
     }
 
     /**
@@ -77,7 +77,7 @@ export class LocalStorageFake implements Storage {
     removeItem(keyName: string): void {
         delete this[keyName];
 
-        this.#space = this.space();
+        this.#used = this.space();
     }
 
     /**
@@ -90,7 +90,7 @@ export class LocalStorageFake implements Storage {
             delete this[key];
         }
 
-        this.#space = this.space();
+        this.#used = this.space();
     }
 
     /**
@@ -110,13 +110,13 @@ export class LocalStorageFake implements Storage {
      * @return { number }
      */
     private space(): number {
-        this.#space = 0;
+        this.#used = 0;
 
         for (const key of Object.keys(this)) {
-            this.#space += this.size(key, this[key]);
+            this.#used += this.size(key, this[key]);
         }
 
-        return this.#space;
+        return this.#used;
     }
 
     /**
@@ -140,7 +140,7 @@ export class LocalStorageFake implements Storage {
      * @return { boolean }
      */
     private exceeded(keyName: string, keyValue: string): boolean {
-        return this.size(keyName, keyValue) + this.#space > this.#quota;
+        return this.size(keyName, keyValue) + this.#used > this.#quota;
     }
 
     /**

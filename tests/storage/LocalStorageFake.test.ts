@@ -1,8 +1,13 @@
 import { LocalStorageFake } from '../../src/main';
 
+type StorageItem = {
+    key: string,
+    value: string
+}
+
 let storage: Storage;
 
-const items: { key: string; value: string }[] = [
+const items: StorageItem[] = [
     { key: '$key1', value: '$value1' },
     { key: '$key2', value: '$value2' },
 ];
@@ -59,7 +64,7 @@ describe('LocalStorageFake.setItem', (): void => {
     });
 
     test('increases length when adding new items', (): void => {
-        const items: { key: string; value: string }[] = [
+        const items: StorageItem[] = [
             { key: '$key1', value: '$value1' },
             { key: '$key2', value: '$value2' },
         ];
@@ -160,7 +165,7 @@ describe('LocalStorageFake.removeItem', (): void => {
 
 describe('LocalStorageFake.clear', (): void => {
     test('removes all items', (): void => {
-        const items: { key: string; value: string }[] = [
+        const items: StorageItem[] = [
             { key: '$key1', value: '$value1' },
             { key: '$key2', value: '$value2' },
         ];

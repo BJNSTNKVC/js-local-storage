@@ -1,4 +1,19 @@
 import { LocalStorageFake } from './LocalStorageFake';
+import {
+    KeyForgotFailed,
+    KeyForgotten,
+    KeyHit,
+    KeyMissed,
+    KeyWriteFailed,
+    KeyWritten,
+    type LocalStorageEvent,
+    type LocalStorageEventListener,
+    type LocalStorageEvents,
+    RetrievingKey,
+    StorageFlushed,
+    StorageFlushing,
+    WritingKey,
+} from '../events';
 
 export type LocalStorageItem = {
     data: any,
@@ -48,9 +63,15 @@ export class LocalStorage {
             expiry: ttl ? Date.now() + ttl * 1000 : null
         };
 
+        this.emit(new WritingKey(key, item.data, item.expiry));
+
         try {
             this.#storage.setItem(key, JSON.stringify(item));
+
+            this.emit(new KeyWritten(key, item.data, item.expiry));
         } catch {
+            this.emit(new KeyWriteFailed(key, item.data, item.expiry));
+
             return false;
         }
 
@@ -66,9 +87,13 @@ export class LocalStorage {
      * @return { * }
      */
     static get(key: string, fallback: string | Function | null = null): any {
+        this.emit(new RetrievingKey(key));
+
         const storageItem: string | null = this.#storage.getItem(key);
 
         if (storageItem === null) {
+            this.emit(new KeyMissed(key));
+
             return typeof fallback === 'function' ? fallback() : fallback;
         }
 
@@ -87,6 +112,8 @@ export class LocalStorage {
         } catch {
             value = storageItem;
         }
+
+        this.emit(new KeyHit(key, value));
 
         return value;
     }
@@ -132,8 +159,12 @@ export class LocalStorage {
         if (this.has(key)) {
             this.#storage.removeItem(key);
 
+            this.emit(new KeyForgotten(key));
+
             return true;
         } else {
+            this.emit(new KeyForgotFailed(key));
+
             return false;
         }
     }
@@ -144,7 +175,11 @@ export class LocalStorage {
      * @return { void }
      */
     static clear(): void {
+        this.emit(new StorageFlushing());
+
         this.#storage.clear();
+
+        this.emit(new StorageFlushed());
     }
 
     /**
@@ -156,6 +191,17 @@ export class LocalStorage {
      */
     static has(key: string): boolean {
         return !!this.get(key);
+    }
+
+    /**
+     * Determine if the key does not exist in the Storage object.
+     *
+     * @param { string } key
+     *
+     * @return { boolean }
+     */
+    static missing(key: string): boolean {
+        return !this.has(key);
     }
 
     /**
@@ -292,5 +338,158 @@ export class LocalStorage {
      */
     static isFake(): boolean {
         return this.#storage instanceof LocalStorageFake;
+    }
+
+    /**
+     * Register an event listener.
+     *
+     * @template { keyof LocalStorageEvents } K
+     *
+     * @param { K | LocalStorageEvents } events
+     * @param { LocalStorageEventListener<K> | null } listener
+     *
+     * @return { void }
+     */
+    static listen(events: 'retrieving', listener: (event: RetrievingKey) => void): void;
+    static listen(events: 'hit', listener: (event: KeyHit) => void): void;
+    static listen(events: 'missed', listener: (event: KeyMissed) => void): void;
+    static listen(events: 'writing', listener: (event: WritingKey) => void): void;
+    static listen(events: 'written', listener: (event: KeyWritten) => void): void;
+    static listen(events: 'write-failed', listener: (event: KeyWriteFailed) => void): void;
+    static listen(events: 'forgot', listener: (event: KeyForgotten) => void): void;
+    static listen(events: 'forgot-failed', listener: (event: KeyForgotFailed) => void): void;
+    static listen(events: 'flushing', listener: (event: StorageFlushing) => void): void;
+    static listen(events: 'flushed', listener: (event: StorageFlushed) => void): void;
+    static listen(events: LocalStorageEvents): void;
+    static listen<K extends keyof LocalStorageEvent>(events: keyof LocalStorageEvent, listener: LocalStorageEventListener<K>): void;
+    static listen<K extends keyof LocalStorageEvent>(events: keyof LocalStorageEvent | LocalStorageEvents, listener: LocalStorageEventListener<K> | null = null): void {
+        events = typeof events === 'string' ? { [events]: listener } : events;
+
+        for (const [event, listener] of Object.entries(events)) {
+            addEventListener(`local-storage:${event}`, listener as EventListener, { once: true });
+        }
+    }
+
+    /**
+     * Register a listener on "retrieving" event.
+     *
+     * @param { (event: RetrievingKey) => void } listener
+     *
+     * @return { void }
+     */
+    static onRetrieving(listener: (event: RetrievingKey) => void): void {
+        this.listen('retrieving', listener);
+    }
+
+    /**
+     * Register a listener on "hit" event.
+     *
+     * @param { (event: KeyHit) => void } listener
+     *
+     * @return { void }
+     */
+    static onHit(listener: (event: KeyHit) => void): void {
+        this.listen('hit', listener);
+    }
+
+    /**
+     * Register a listener on "missed" event.
+     *
+     * @param { (event: KeyMissed) => void } listener
+     *
+     * @return { void }
+     */
+    static onMissed(listener: (event: KeyMissed) => void): void {
+        this.listen('missed', listener);
+    }
+
+    /**
+     * Register a listener on "writing" event.
+     *
+     * @param { (event: WritingKey) => void } listener
+     *
+     * @return { void }
+     */
+    static onWriting(listener: (event: WritingKey) => void): void {
+        this.listen('writing', listener);
+    }
+
+    /**
+     * Register a listener on "written" event.
+     *
+     * @param { (event: KeyWritten) => void } listener
+     *
+     * @return { void }
+     */
+    static onWritten(listener: (event: KeyWritten) => void): void {
+        this.listen('written', listener);
+    }
+
+    /**
+     * Register a listener on "failed" event.
+     *
+     * @param { (event: KeyWriteFailed) => void } listener
+     *
+     * @return { void }
+     */
+    static onWriteFailed(listener: (event: KeyWriteFailed) => void): void {
+        this.listen('write-failed', listener);
+    }
+
+    /**
+     * Register a listener on "forgot" event.
+     *
+     * @param { (event: KeyForgotten) => void } listener
+     *
+     * @return { void }
+     */
+    static onForgot(listener: (event: KeyForgotten) => void): void {
+        this.listen('forgot', listener);
+    }
+
+    /**
+     * Register a listener on "forgot-failed" event.
+     *
+     * @param { (event: KeyForgotFailed) => void } listener
+     *
+     * @return { void }
+     */
+    static onForgotFailed(listener: (event: KeyForgotFailed) => void): void {
+        this.listen('forgot-failed', listener);
+    }
+
+    /**
+     * Register a listener on "flushing" event.
+     *
+     * @param { (event: StorageFlushing) => void } listener
+     *
+     * @return { void }
+     */
+    static onFlushing(listener: (event: StorageFlushing) => void): void {
+        this.listen('flushing', listener);
+    }
+
+    /**
+     * Register a listener on "flushed" event.
+     *
+     * @param { (event: StorageFlushed) => void } listener
+     *
+     * @return { void }
+     */
+    static onFlushed(listener: (event: StorageFlushed) => void): void {
+        this.listen('flushed', listener);
+    }
+
+    /**
+     * Emit an event for the Local Storage instance.
+     *
+     * @template { keyof LocalStorageEvents } K
+     *
+     * @param { LocalStorageEvent[K] } event
+     *
+     * @returns { void }
+     */
+    private static emit<K extends keyof LocalStorageEvent>(event: LocalStorageEvent[K]): void {
+        dispatchEvent(event);
     }
 }
