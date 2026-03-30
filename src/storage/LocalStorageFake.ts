@@ -11,7 +11,7 @@ export class LocalStorageFake implements Storage {
      *
      * @type { number }
      */
-    #quota: number = 5 * 1024 * 1024;
+    readonly #quota: number = 5 * 1024 * 1024;
 
     /**
      * Storage property.

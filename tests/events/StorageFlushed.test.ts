@@ -10,4 +10,8 @@ describe('StorageFlushed', (): void => {
     test('has the correct event type', (): void => {
         expect(event.type).toBe('local-storage:flushed');
     });
+
+    test('has undefined event key', (): void => {
+        expect(event.key).toBeUndefined()
+    });
 });
