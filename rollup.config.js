@@ -28,7 +28,10 @@ export default {
         },
     ],
     plugins: [
-        typescript(),
+        typescript({
+            tsconfig: './tsconfig.json',
+            include : ['src/**/*.ts'],
+        }),
         nodeResolve(),
         commonjs(),
     ],
