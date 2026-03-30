@@ -212,15 +212,7 @@ export class LocalStorage {
      * @return { boolean }
      */
     static hasAny(...keys: [string | string[]] | string[]): boolean {
-        if (keys.length === 1) {
-            if (Array.isArray(keys[0])) {
-                keys = keys[0];
-            } else {
-                keys = [keys[0]];
-            }
-        }
-
-        return keys.some((key: string): boolean => this.has(key));
+        return keys.flat().some((key: string): boolean => this.has(key));
     }
 
     /**
@@ -361,7 +353,6 @@ export class LocalStorage {
     static listen(events: 'flushing', listener: (event: StorageFlushing) => void): void;
     static listen(events: 'flushed', listener: (event: StorageFlushed) => void): void;
     static listen(events: LocalStorageEvents): void;
-    static listen<K extends keyof LocalStorageEvent>(events: keyof LocalStorageEvent, listener: LocalStorageEventListener<K>): void;
     static listen<K extends keyof LocalStorageEvent>(events: keyof LocalStorageEvent | LocalStorageEvents, listener: LocalStorageEventListener<K> | null = null): void {
         events = typeof events === 'string' ? { [events]: listener } : events;
 

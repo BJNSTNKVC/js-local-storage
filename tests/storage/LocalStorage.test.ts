@@ -60,7 +60,7 @@ describe('LocalStorage.ttl', (): void => {
 
         const expiry: null = LocalStorage.expiry(key) as null;
 
-        expect(expiry).toBe(null);
+        expect(expiry).toBeNull();
     });
 });
 
@@ -75,7 +75,7 @@ describe('LocalStorage.set', (): void => {
 
         expect(result).toBeTruthy();
         expect(item.data).toEqual(value);
-        expect(item.expiry).toEqual(null);
+        expect(item.expiry).toBeNull();
     });
 
     test('sets the key with a function value to the Storage object', (): void => {
@@ -87,7 +87,7 @@ describe('LocalStorage.set', (): void => {
         const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
-        expect(item.expiry).toEqual(null);
+        expect(item.expiry).toBeNull();
     });
 
     test('sets the key to the Storage object with an expiry based on the provided ttl', (): void => {
@@ -143,7 +143,7 @@ describe('LocalStorage.set', (): void => {
         const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
 
         expect(item.data).toEqual(value);
-        expect(item.expiry).toEqual(null);
+        expect(item.expiry).toBeNull();
     });
 
     test('returns false in case value cannot be set', (): void => {
@@ -216,6 +216,15 @@ describe('LocalStorage.get', (): void => {
         expect(LocalStorage.get(key)).toEqual(value);
     });
 
+    test('retrieves values set directly via localStorage API', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        localStorage.setItem(key, value)
+
+        expect(LocalStorage.get(key)).toEqual(value);
+    });
+
     test('returns fallback value if key does not exist in Storage', (): void => {
         const key: string = '$key';
         const fallback: string = 'fallback';
@@ -228,7 +237,7 @@ describe('LocalStorage.get', (): void => {
     });
 
     test('returns null if key does not exist and no fallback is provided', (): void => {
-        expect(LocalStorage.get('$key')).toEqual(null);
+        expect(LocalStorage.get('$key')).toBeNull();
     });
 
     test('returns null if item has expired', (): void => {
@@ -238,7 +247,7 @@ describe('LocalStorage.get', (): void => {
 
         LocalStorage.set(key, value, ttl);
 
-        expect(LocalStorage.get(key)).toEqual(null);
+        expect(LocalStorage.get(key)).toBeNull();
     });
 
     test('removes the key from Storage if item has expired', (): void => {
@@ -248,7 +257,7 @@ describe('LocalStorage.get', (): void => {
 
         LocalStorage.set(key, value, ttl);
 
-        expect(LocalStorage.get(key)).toEqual(null);
+        expect(LocalStorage.get(key)).toBeNull();
     });
 
     test('returns value if item has not expired', (): void => {
@@ -311,6 +320,15 @@ describe('LocalStorage.remember', (): void => {
         const value: string = '$value';
 
         LocalStorage.set(key, value);
+
+        expect(LocalStorage.remember(key, (): string => 'fallback')).toEqual(value);
+    });
+
+    test('returns the value for a key in Storage set directly via localStorage API', (): void => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        localStorage.setItem(key, value)
 
         expect(LocalStorage.remember(key, (): string => 'fallback')).toEqual(value);
     });
@@ -412,7 +430,7 @@ describe('LocalStorage.remove', (): void => {
         const result: boolean = LocalStorage.remove(key);
 
         expect(result).toBeTruthy();
-        expect(LocalStorage.get(key)).toEqual(null);
+        expect(LocalStorage.get(key)).toBeNull();
     });
 
     test('does nothing if the key does not exist in Storage', (): void => {
@@ -421,7 +439,7 @@ describe('LocalStorage.remove', (): void => {
         const result: boolean = LocalStorage.remove(key);
 
         expect(result).toBeFalsy();
-        expect(LocalStorage.get(key)).toEqual(null);
+        expect(LocalStorage.get(key)).toBeNull();
     });
 
     test('emits KeyForgotten event after successful remove operation', (): void => {
@@ -466,8 +484,8 @@ describe('LocalStorage.clear', (): void => {
 
         LocalStorage.clear();
 
-        expect(localStorage.getItem(key1)).toEqual(null);
-        expect(localStorage.getItem(key2)).toEqual(null);
+        expect(localStorage.getItem(key1)).toBeNull();
+        expect(localStorage.getItem(key2)).toBeNull();
     });
 
     test('does nothing if Storage is already empty', (): void => {
@@ -485,7 +503,7 @@ describe('LocalStorage.clear', (): void => {
         LocalStorage.set(key, value, ttl);
         LocalStorage.clear();
 
-        expect(LocalStorage.get(key)).toEqual(null);
+        expect(LocalStorage.get(key)).toBeNull();
     });
 
     test('emits StorageFlushing event before clearing all keys from Storage', (): void => {
@@ -534,13 +552,13 @@ describe('LocalStorage.has', (): void => {
 
         LocalStorage.set(key, value);
 
-        expect(LocalStorage.has(key)).toEqual(true);
+        expect(LocalStorage.has(key)).toBeTruthy();
     });
 
     test('returns false if the key does not exist in Storage', (): void => {
         const key: string = '$key';
 
-        expect(LocalStorage.has(key)).toEqual(false);
+        expect(LocalStorage.has(key)).toBeFalsy();
     });
 
     test('returns false if the item has expired', (): void => {
@@ -550,7 +568,7 @@ describe('LocalStorage.has', (): void => {
 
         LocalStorage.set(key, value, ttl);
 
-        expect(LocalStorage.has(key)).toEqual(false);
+        expect(LocalStorage.has(key)).toBeFalsy();
     });
 
     test('returns true for items with no expiry', (): void => {
@@ -559,7 +577,7 @@ describe('LocalStorage.has', (): void => {
 
         LocalStorage.set(key, value);
 
-        expect(LocalStorage.has(key)).toEqual(true);
+        expect(LocalStorage.has(key)).toBeTruthy();
     });
 
     test('returns false for an empty Storage', (): void => {
@@ -567,7 +585,7 @@ describe('LocalStorage.has', (): void => {
 
         const key: string = '$key';
 
-        expect(LocalStorage.has(key)).toEqual(false);
+        expect(LocalStorage.has(key)).toBeFalsy();
     });
 });
 
@@ -600,14 +618,14 @@ describe('LocalStorage.hasAny', (): void => {
 
         LocalStorage.set(key2, value2);
 
-        expect(LocalStorage.hasAny([key1, key2])).toEqual(true);
+        expect(LocalStorage.hasAny([key1, key2])).toBeTruthy();
     });
 
     test('returns false if none of the keys exist in Storage', (): void => {
         const key1: string = '$key1';
         const key2: string = '$key2';
 
-        expect(LocalStorage.hasAny([key1, key2])).toEqual(false);
+        expect(LocalStorage.hasAny([key1, key2])).toBeFalsy();
     });
 
     test('returns true if at least one of the keys exists in Storage when provided as individual arguments', (): void => {
@@ -617,14 +635,14 @@ describe('LocalStorage.hasAny', (): void => {
         LocalStorage.set(key, value);
 
 
-        expect(LocalStorage.hasAny(key, 'anotherKey')).toEqual(true);
+        expect(LocalStorage.hasAny(key, 'anotherKey')).toBeTruthy();
     });
 
     test('returns false if none of the keys exist in Storage when provided as individual arguments', (): void => {
         const key1: string = '$key1';
         const key2: string = '$key2';
 
-        expect(LocalStorage.hasAny(key1, key2)).toEqual(false);
+        expect(LocalStorage.hasAny(key1, key2)).toBeFalsy();
     });
 
     test('returns true if at least one of the keys exists when some keys are expired', (): void => {
@@ -639,7 +657,7 @@ describe('LocalStorage.hasAny', (): void => {
 
         LocalStorage.set(key2, value2);
 
-        expect(LocalStorage.hasAny([key1, key2])).toEqual(true);
+        expect(LocalStorage.hasAny([key1, key2])).toBeTruthy();
     });
 
     test('returns false if none of the keys exist or are valid', (): void => {
@@ -651,7 +669,7 @@ describe('LocalStorage.hasAny', (): void => {
 
         const key2: string = '$key2';
 
-        expect(LocalStorage.hasAny([key1, key2])).toEqual(false);
+        expect(LocalStorage.hasAny([key1, key2])).toBeFalsy();
     });
 });
 
@@ -659,7 +677,7 @@ describe('LocalStorage.isEmpty', (): void => {
     test('returns true if Storage is empty', (): void => {
         LocalStorage.clear();
 
-        expect(LocalStorage.isEmpty()).toEqual(true);
+        expect(LocalStorage.isEmpty()).toBeTruthy();
     });
 
     test('returns false if Storage has items', (): void => {
@@ -668,7 +686,7 @@ describe('LocalStorage.isEmpty', (): void => {
 
         LocalStorage.set(key, value);
 
-        expect(LocalStorage.isEmpty()).toEqual(false);
+        expect(LocalStorage.isEmpty()).toBeFalsy();
     });
 });
 
@@ -679,13 +697,13 @@ describe('LocalStorage.isNotEmpty', (): void => {
 
         LocalStorage.set(key, value);
 
-        expect(LocalStorage.isNotEmpty()).toEqual(true);
+        expect(LocalStorage.isNotEmpty()).toBeTruthy();
     });
 
     test('returns false if Storage is empty', (): void => {
         LocalStorage.clear();
 
-        expect(LocalStorage.isNotEmpty()).toEqual(false);
+        expect(LocalStorage.isNotEmpty()).toBeFalsy();
     });
 });
 
@@ -767,7 +785,7 @@ describe('LocalStorage.touch', (): void => {
 
         LocalStorage.touch(key, 60);
 
-        expect(localStorage.getItem(key)).toEqual(null);
+        expect(localStorage.getItem(key)).toBeNull();
     });
 
     test('uses default TTL if provided TTL is null', (): void => {
@@ -809,7 +827,7 @@ describe('LocalStorage.expiry', (): void => {
     test('returns null if the key does not exist in Storage', (): void => {
         const key: string = '$key';
 
-        expect(LocalStorage.expiry(key)).toEqual(null);
+        expect(LocalStorage.expiry(key)).toBeNull();
     });
 
     test('returns null if the item has no expiration', (): void => {
@@ -818,7 +836,16 @@ describe('LocalStorage.expiry', (): void => {
 
         LocalStorage.set(key, value, null);
 
-        expect(LocalStorage.expiry(key)).toEqual(null);
+        expect(LocalStorage.expiry(key)).toBeNull();
+    });
+
+    test('returns null if the stored value is not valid JSON', (): void => {
+        const key: string = '$key';
+        const value: string = 'invalid json data';
+
+        localStorage.setItem(key, value);
+
+        expect(LocalStorage.expiry(key)).toBeNull();
     });
 });
 
@@ -1090,19 +1117,19 @@ describe('LocalStorage.listen', (): void => {
 
         LocalStorage.get(key);
 
-        expect(listeners['retrieving']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['retrieving'])).toBeInstanceOf(RetrievingKey);
+        expect(listeners.retrieving).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.retrieving)).toBeInstanceOf(RetrievingKey);
 
-        expect(listeners['missed']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['missed'])).toBeInstanceOf(KeyMissed);
+        expect(listeners.missed).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.missed)).toBeInstanceOf(KeyMissed);
 
         LocalStorage.set(key, value, ttl);
 
-        expect(listeners['writing']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['writing'])).toBeInstanceOf(WritingKey);
+        expect(listeners.writing).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.writing)).toBeInstanceOf(WritingKey);
 
-        expect(listeners['written']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['written'])).toBeInstanceOf(KeyWritten);
+        expect(listeners.written).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.written)).toBeInstanceOf(KeyWritten);
 
         LocalStorage.set(key.repeat(5 * 1024 * 1024), value);
 
@@ -1111,13 +1138,13 @@ describe('LocalStorage.listen', (): void => {
 
         LocalStorage.get(key);
 
-        expect(listeners['hit']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['hit'])).toBeInstanceOf(KeyHit);
+        expect(listeners.hit).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.hit)).toBeInstanceOf(KeyHit);
 
         LocalStorage.remove(key);
 
-        expect(listeners['forgot']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['forgot'])).toBeInstanceOf(KeyForgotten);
+        expect(listeners.forgot).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.forgot)).toBeInstanceOf(KeyForgotten);
 
         LocalStorage.remove('$key-1');
 
@@ -1126,11 +1153,11 @@ describe('LocalStorage.listen', (): void => {
 
         LocalStorage.clear();
 
-        expect(listeners['flushing']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['flushing'])).toBeInstanceOf(StorageFlushing);
+        expect(listeners.flushing).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.flushing)).toBeInstanceOf(StorageFlushing);
 
-        expect(listeners['flushed']).toHaveBeenCalledTimes(1);
-        expect(getEventFromMockCalls(listeners['flushed'])).toBeInstanceOf(StorageFlushed);
+        expect(listeners.flushed).toHaveBeenCalledTimes(1);
+        expect(getEventFromMockCalls(listeners.flushed)).toBeInstanceOf(StorageFlushed);
     });
 });
 
