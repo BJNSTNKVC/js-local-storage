@@ -1,6 +1,6 @@
 {
   "name": "@bjnstnkvc/local-storage",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Simple wrapper for JavaScript Local Storage API.",
   "type": "module",
   "main": "lib/main.js",
@@ -9,6 +9,7 @@
   "types": "src/main.ts",
   "exports": {
     ".": {
+      "types": "./src/main.ts",
       "import": "./lib/main.esm.js",
       "require": "./lib/main.umd.js",
       "default": "./lib/main.umd.js"
@@ -18,7 +19,9 @@
     "lib": "lib"
   },
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "test": "jest --config jestconfig.json ./tests",
+    "coverage": "jest --config jestconfig.json --coverage ./tests",
     "build": "rollup -c"
   },
   "repository": {
