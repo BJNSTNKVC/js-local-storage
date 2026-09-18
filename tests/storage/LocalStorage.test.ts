@@ -90,6 +90,100 @@ describe('LocalStorage.set', (): void => {
         expect(item.expiry).toBeNull();
     });
 
+    test('sets the key with an async function value to the Storage object', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        const result: boolean = await LocalStorage.set(key, async (): Promise<string> => value);
+
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
+
+        expect(result).toBeTruthy();
+        expect(item.data).toEqual(value);
+        expect(item.expiry).toBeNull();
+    });
+
+    test('sets the key with a Promise value to the Storage object', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        const result: boolean = await LocalStorage.set(key, Promise.resolve(value));
+
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
+
+        expect(result).toBeTruthy();
+        expect(item.data).toEqual(value);
+    });
+
+    test('returns a Promise when the value is an async function', async (): Promise<void> => {
+        const result: Promise<boolean> = LocalStorage.set('$key', async (): Promise<string> => '$value');
+
+        expect(result).toBeInstanceOf(Promise);
+
+        await result;
+    });
+
+    test('does not write the key until the async function value resolves', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        const result: Promise<boolean> = LocalStorage.set(key, async (): Promise<string> => value);
+
+        expect(localStorage.getItem(key)).toBeNull();
+        expect(events.has('local-storage:writing')).toBeFalsy();
+
+        await result;
+
+        expect(LocalStorage.get(key)).toEqual(value);
+    });
+
+    test('sets the key with an async function value with an expiry based on the provided ttl', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+        const now: number = Date.now();
+
+        await LocalStorage.set(key, async (): Promise<string> => value, ttl);
+
+        const item: LocalStorageItem = JSON.parse(localStorage.getItem(key) as string) as LocalStorageItem;
+
+        expect(item.data).toEqual(value);
+        expect(item.expiry).toBeCloseTo(now + ttl * 1000, -2);
+    });
+
+    test('resolves to false in case the async function value cannot be set', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = 'x'.repeat(5 * 1024 * 1024);
+
+        const result: boolean = await LocalStorage.set(key, async (): Promise<string> => value);
+
+        expect(result).toBeFalsy();
+        expect(events.has('local-storage:write-failed')).toBeTruthy();
+    });
+
+    test('rejects without writing the key in case the async function value rejects', async (): Promise<void> => {
+        const key: string = '$key';
+        const error: Error = new Error('$error');
+
+        await expect(LocalStorage.set(key, async (): Promise<string> => { throw error; })).rejects.toBe(error);
+
+        expect(localStorage.getItem(key)).toBeNull();
+        expect(events.has('local-storage:writing')).toBeFalsy();
+    });
+
+    test('emits WritingKey and KeyWritten events with the resolved value of the async function', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        await LocalStorage.set(key, async (): Promise<string> => value);
+
+        const writing: WritingKey = events.get('local-storage:writing') as WritingKey;
+        const written: KeyWritten = events.get('local-storage:written') as KeyWritten;
+
+        expect(writing.value).toBe(value);
+        expect(written.value).toBe(value);
+    });
+
     test('sets the key to the Storage object with an expiry based on the provided ttl', (): void => {
         const key: string = '$key';
         const value: string = '$value';
@@ -234,6 +328,32 @@ describe('LocalStorage.get', (): void => {
 
     test('returns fallback function result if key does not exist in Storage', (): void => {
         expect(LocalStorage.get('$key', (): string => 'fallback')).toEqual('fallback');
+    });
+
+    test('returns fallback async function result if key does not exist in Storage', async (): Promise<void> => {
+        const result: Promise<string> = LocalStorage.get('$key', async (): Promise<string> => 'fallback');
+
+        expect(result).toBeInstanceOf(Promise);
+        expect(await result).toEqual('fallback');
+    });
+
+    test('does not store the fallback async function result', async (): Promise<void> => {
+        const key: string = '$key';
+
+        await LocalStorage.get(key, async (): Promise<string> => 'fallback');
+
+        expect(localStorage.getItem(key)).toBeNull();
+    });
+
+    test('does not call the fallback async function if key exists in Storage', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const fallback: jest.Mock = jest.fn(async (): Promise<string> => 'fallback');
+
+        LocalStorage.set(key, value);
+
+        expect(await LocalStorage.get(key, fallback)).toEqual(value);
+        expect(fallback).not.toHaveBeenCalled();
     });
 
     test('returns null if key does not exist and no fallback is provided', (): void => {
@@ -390,6 +510,79 @@ describe('LocalStorage.remember', (): void => {
 
         expect(LocalStorage.remember(key, (): string => value)).toEqual(value);
         expect(LocalStorage.get(key)).toEqual(value);
+    });
+
+    test('stores and returns the result of the async callback if key does not exist', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+
+        const result: Promise<string> = LocalStorage.remember(key, async (): Promise<string> => value);
+
+        expect(result).toBeInstanceOf(Promise);
+        expect(await result).toEqual(value);
+        expect(LocalStorage.get(key)).toEqual(value);
+    });
+
+    test('stores and returns the result of the async callback with an expiry if key does not exist', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 60;
+        const now: number = Date.now();
+
+        expect(await LocalStorage.remember(key, async (): Promise<string> => value, ttl)).toEqual(value);
+        expect(LocalStorage.get(key)).toEqual(value);
+        expect((LocalStorage.expiry(key) as Date).getTime()).toBeCloseTo(now + ttl * 1000, -2);
+    });
+
+    test('stores and returns the result of the async callback with default ttl if provided', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = 120;
+        const now: number = Date.now();
+
+        LocalStorage.ttl(ttl);
+
+        expect(await LocalStorage.remember(key, async (): Promise<string> => value)).toEqual(value);
+        expect((LocalStorage.expiry(key) as Date).getTime()).toBeCloseTo(now + ttl * 1000, -2);
+    });
+
+    test('returns the value for a key in Storage without calling the async callback', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const callback: jest.Mock = jest.fn(async (): Promise<string> => 'fallback');
+
+        LocalStorage.set(key, value);
+
+        expect(await LocalStorage.remember(key, callback)).toEqual(value);
+        expect(callback).not.toHaveBeenCalled();
+    });
+
+    test('removes the key from Storage if item has expired and stores async callback result', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = '$value';
+        const ttl: number = -60;
+
+        LocalStorage.set(key, value, ttl);
+
+        expect(await LocalStorage.remember(key, async (): Promise<string> => '_value')).toEqual('_value');
+        expect(LocalStorage.get(key)).toEqual('_value');
+    });
+
+    test('resolves to null in case the async callback result cannot be stored', async (): Promise<void> => {
+        const key: string = '$key';
+        const value: string = 'x'.repeat(5 * 1024 * 1024);
+
+        expect(await LocalStorage.remember(key, async (): Promise<string> => value)).toBeNull();
+        expect(localStorage.getItem(key)).toBeNull();
+    });
+
+    test('rejects without storing the key in case the async callback rejects', async (): Promise<void> => {
+        const key: string = '$key';
+        const error: Error = new Error('$error');
+
+        await expect(LocalStorage.remember(key, async (): Promise<string> => { throw error; })).rejects.toBe(error);
+
+        expect(localStorage.getItem(key)).toBeNull();
     });
 });
 

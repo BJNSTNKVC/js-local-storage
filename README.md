@@ -36,7 +36,7 @@ Set the value for a given key in the Local Storage.
 #### Parameters
 
 - **key** - String containing the name of the key.
-- **value** - The value to be stored.
+- **value** - The value to be stored. Can also be a function, a Promise or an async function (see below).
 - **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal
   to [LocalStorage.ttl](#ttl) value.
 
@@ -45,6 +45,26 @@ Set the value for a given key in the Local Storage.
 ```javascript
 LocalStorage.set('key', 'value', 60); 
 ```
+
+You can also pass a closure as the value. The closure will be executed and its result stored:
+
+```javascript
+LocalStorage.set('key', () => 'value');
+```
+
+In case the closure is async (or you pass a Promise directly), the key is stored once the Promise resolves and `set`
+returns a Promise resolving to `true` or `false`:
+
+```javascript
+await LocalStorage.set('user', async () => {
+    const response = await fetch('/api/user');
+
+    return response.json();
+}, 60);
+```
+
+> **Note:** The TTL of an async value is counted from the moment the Promise resolves. If the Promise rejects, nothing
+> is stored and the returned Promise rejects with the same error.
 
 ### get
 
@@ -69,6 +89,20 @@ This allows you to lazily load default values from other sources:
 LocalStorage.get('key', () => 'default');
 ````
 
+The closure can also be async. In case the key does not exist, `get` returns a Promise resolving to the result of the
+closure. Since `await` works on plain values too, awaiting the call is safe whether the key exists or not:
+
+```javascript
+const user = await LocalStorage.get('user', async () => {
+    const response = await fetch('/api/user');
+
+    return response.json();
+});
+```
+
+> **Note:** The result of the fallback closure is not stored in the Local Storage. Use [remember](#remember) if you
+> would like to store it.
+
 > **Note:** When you attempt to retrieve a value using the `get` method, it checks if the item has expired based on its
 > TTL (Time-To-Live). If the item has indeed expired, it is automatically removed from the LocalStorage, ensuring that
 > your application only works with valid, up-to-date data.
@@ -81,7 +115,7 @@ Storage.
 #### Parameters
 
 - **key** - String containing the name of the key.
-- **fallback** - Function you want to execute.
+- **callback** - Function you want to execute. Can also be an async function.
 - **ttl** *(optional)* - Time to live in seconds for the key. Defaults to `null` (no expiration) or equal
   to [LocalStorage.ttl](#ttl) value.
 
@@ -90,6 +124,21 @@ Storage.
 ```javascript
 LocalStorage.remember('key', () => 'default', 60);
 ````
+
+In case the callback is async and the key does not exist, `remember` returns a Promise resolving to the stored value.
+If the key already exists, its value is returned right away without executing the callback, so awaiting the call works
+in both cases:
+
+```javascript
+const user = await LocalStorage.remember('user', async () => {
+    const response = await fetch('/api/user');
+
+    return response.json();
+}, 60);
+```
+
+> **Note:** If the async callback rejects, nothing is stored and the returned Promise rejects with the same error. If
+> the result cannot be stored (e.g. the storage quota is exceeded), the Promise resolves to `null`.
 
 ### all
 
