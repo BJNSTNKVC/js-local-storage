@@ -20,6 +20,13 @@ export type LocalStorageItem = {
     expiry: number | null
 };
 
+/**
+ * Resolves to Promise<R> when the given value is a Promise or a function returning one, otherwise to R.
+ */
+export type LocalStorageResult<T, R> = 0 extends (1 & T)
+    ? R
+    : T extends PromiseLike<any> | ((...args: any[]) => PromiseLike<any>) ? Promise<R> : R;
+
 export class LocalStorage {
     /**
      * Current Storage instance.
@@ -49,17 +56,40 @@ export class LocalStorage {
     /**
      * Set the key to the Storage object.
      *
+     * In case the value is a Promise or a function returning one, the key is set once it resolves.
+     *
+     * @template T
+     *
      * @param { string } key
-     * @param { * } value
+     * @param { T } value
+     * @param { number | null } ttl
+     *
+     * @return { boolean | Promise<boolean> }
+     */
+    static set<T>(key: string, value: T, ttl: number | null = null): LocalStorageResult<T, boolean> {
+        const data: any = typeof value === 'function' ? value() : value;
+
+        if (this.isPromise(data)) {
+            return Promise.resolve(data).then((data: any): boolean => this.write(key, data, ttl)) as LocalStorageResult<T, boolean>;
+        }
+
+        return this.write(key, data, ttl) as LocalStorageResult<T, boolean>;
+    }
+
+    /**
+     * Write the data to the Storage object.
+     *
+     * @param { string } key
+     * @param { * } data
      * @param { number | null } ttl
      *
      * @return { boolean }
      */
-    static set(key: string, value: any, ttl: number | null = null): boolean {
+    private static write(key: string, data: any, ttl: number | null): boolean {
         ttl = ttl ?? this.#ttl;
 
         const item: LocalStorageItem = {
-            data  : typeof value === 'function' ? value() : value,
+            data  : data,
             expiry: ttl ? Date.now() + ttl * 1000 : null
         };
 
@@ -80,6 +110,8 @@ export class LocalStorage {
 
     /**
      * Get the key from the Storage object.
+     *
+     * In case the key does not exist and the fallback is an async function, a Promise resolving to its result is returned.
      *
      * @param { string } key
      * @param { string | Function | null } fallback
@@ -121,6 +153,8 @@ export class LocalStorage {
     /**
      * Get the key from the Storage, or execute the given callback and store the result.
      *
+     * In case the key does not exist and the callback is async, a Promise resolving to the stored value is returned.
+     *
      * @param { string } key
      * @param { Function } callback
      * @param { number | null } ttl
@@ -128,13 +162,15 @@ export class LocalStorage {
      * @return { any }
      */
     static remember(key: string, callback: Function, ttl: number | null = null): any {
-        const item: string | null = this.get(key);
+        const item: any = this.get(key);
 
-        if (item === null) {
-            this.set(key, callback, ttl ?? this.#ttl);
+        if (item !== null) {
+            return item;
         }
 
-        return item ?? this.get(key);
+        const written: boolean | Promise<boolean> = this.set(key, callback, ttl);
+
+        return this.isPromise(written) ? written.then((): any => this.get(key)) : this.get(key);
     }
 
     /**
@@ -482,5 +518,16 @@ export class LocalStorage {
      */
     private static emit<K extends keyof LocalStorageEvent>(event: LocalStorageEvent[K]): void {
         dispatchEvent(event);
+    }
+
+    /**
+     * Determine if the given value is a Promise (or a Promise-like "thenable").
+     *
+     * @param { * } value
+     *
+     * @return { boolean }
+     */
+    private static isPromise(value: any): value is PromiseLike<any> {
+        return value !== null && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function';
     }
 }
