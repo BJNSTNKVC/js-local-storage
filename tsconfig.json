@@ -14,6 +14,7 @@
 	"paths": {},
 	"sourceMap": true,
 	"sourceRoot": "/",
+	"strict": true,
 	"alwaysStrict": true,
 	"allowUnreachableCode": false,
 	"noImplicitAny": true,

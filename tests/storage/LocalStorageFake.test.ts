@@ -100,7 +100,7 @@ describe('LocalStorageFake.setItem', (): void => {
 
         try {
             storage.setItem(key, value);
-        } catch (error) {
+        } catch (error: any) {
             expect(error).toBeInstanceOf(DOMException);
             expect(error.name).toBe('QuotaExceededError');
             expect(error.message).toContain(`Failed to execute 'setItem' on 'Storage': Setting the value of '${key}' exceeded the quota.`);
