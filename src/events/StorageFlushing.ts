@@ -1,12 +1,5 @@
 export class StorageFlushing extends Event {
     /**
-     * The key of the event.
-     *
-     * @type { string }
-     */
-    readonly #key: string;
-
-    /**
      * Create a new Storage Flushing Event instance.
      */
     constructor() {
@@ -16,9 +9,9 @@ export class StorageFlushing extends Event {
     /**
      * Get the key of the event.
      *
-     * @return { string }
+     * @return { undefined }
      */
-    get key(): string {
-        return this.#key;
+    get key(): undefined {
+        return undefined;
     }
 }
